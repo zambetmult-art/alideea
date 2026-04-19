@@ -331,20 +331,23 @@ def store_index():
 @app.route('/magazin/inventar', methods=['GET', 'POST'])
 def store_inventory():
     db = get_db()
+    week_date = get_week_monday()
+
     if request.method == 'POST':
         location_id = request.form['location_id']
-        week_date = get_week_monday()
+        # Blocare re-trimitere in aceeasi saptamana
         existing = db.execute(
             "SELECT id FROM inventory_reports WHERE location_id=? AND week_date=?",
             (location_id, week_date)
         ).fetchone()
         if existing:
-            report_id = existing['id']
-            db.execute("DELETE FROM inventory_items WHERE report_id=?", (report_id,))
-        else:
-            db.execute("INSERT INTO inventory_reports (location_id, week_date) VALUES (?,?)",
-                       (location_id, week_date))
-            report_id = db.execute("SELECT last_insert_rowid()").fetchone()[0]
+            report = db.execute("SELECT ir.*, l.name as location_name FROM inventory_reports ir JOIN locations l ON ir.location_id=l.id WHERE ir.id=?", (existing['id'],)).fetchone()
+            items = db.execute("SELECT ii.*, p.name as product_name, p.unit FROM inventory_items ii JOIN products p ON ii.product_id=p.id WHERE ii.report_id=? ORDER BY p.name", (existing['id'],)).fetchall()
+            db.close()
+            return render_template('store/inventory_view.html', report=report, items=items, already_sent=True)
+
+        db.execute("INSERT INTO inventory_reports (location_id, week_date) VALUES (?,?)", (location_id, week_date))
+        report_id = db.execute("SELECT last_insert_rowid()").fetchone()[0]
         products = db.execute("SELECT * FROM products WHERE active=1 ORDER BY name").fetchall()
         for p in products:
             qty_str = request.form.get(f'qty_{p["id"]}', '0').strip()
@@ -352,10 +355,24 @@ def store_inventory():
             db.execute("INSERT INTO inventory_items (report_id, product_id, quantity) VALUES (?,?,?)",
                        (report_id, p['id'], qty))
         db.commit()
+        report = db.execute("SELECT ir.*, l.name as location_name FROM inventory_reports ir JOIN locations l ON ir.location_id=l.id WHERE ir.id=?", (report_id,)).fetchone()
+        items = db.execute("SELECT ii.*, p.name as product_name, p.unit FROM inventory_items ii JOIN products p ON ii.product_id=p.id WHERE ii.report_id=? ORDER BY p.name", (report_id,)).fetchall()
         db.close()
-        return render_template('store/success.html', message='Inventarul a fost trimis cu succes!')
+        return render_template('store/inventory_view.html', report=report, items=items, already_sent=False)
 
     location_id = request.args.get('location_id')
+    # Daca au trimis deja saptamana asta, arata view-ul
+    if location_id:
+        existing = db.execute(
+            "SELECT id FROM inventory_reports WHERE location_id=? AND week_date=?",
+            (location_id, week_date)
+        ).fetchone()
+        if existing:
+            report = db.execute("SELECT ir.*, l.name as location_name FROM inventory_reports ir JOIN locations l ON ir.location_id=l.id WHERE ir.id=?", (existing['id'],)).fetchone()
+            items = db.execute("SELECT ii.*, p.name as product_name, p.unit FROM inventory_items ii JOIN products p ON ii.product_id=p.id WHERE ii.report_id=? ORDER BY p.name", (existing['id'],)).fetchall()
+            db.close()
+            return render_template('store/inventory_view.html', report=report, items=items, already_sent=True)
+
     locations = db.execute("SELECT * FROM locations WHERE active=1 ORDER BY name").fetchall()
     products = db.execute("SELECT * FROM products WHERE active=1 ORDER BY name").fetchall()
     db.close()
@@ -364,14 +381,24 @@ def store_inventory():
 @app.route('/magazin/comanda', methods=['GET', 'POST'])
 def store_order():
     db = get_db()
+    today = date.today().strftime('%Y-%m-%d')
+
     if request.method == 'POST':
         location_id = request.form['location_id']
         notes = request.form.get('notes', '')
+        # Blocare re-trimitere in aceeasi zi
+        existing = db.execute(
+            "SELECT id FROM orders WHERE location_id=? AND date(submitted_at)=?",
+            (location_id, today)
+        ).fetchone()
+        if existing:
+            order = db.execute("SELECT o.*, l.name as location_name FROM orders o JOIN locations l ON o.location_id=l.id WHERE o.id=?", (existing['id'],)).fetchone()
+            items = db.execute("SELECT oi.*, p.name as product_name, p.unit FROM order_items oi JOIN products p ON oi.product_id=p.id WHERE oi.order_id=? AND oi.quantity>0", (existing['id'],)).fetchall()
+            db.close()
+            return render_template('store/order_view.html', order=order, items=items, already_sent=True)
+
         products = db.execute("SELECT * FROM products WHERE active=1 ORDER BY name").fetchall()
-        has_items = any(
-            float(request.form.get(f'qty_{p["id"]}', '0') or '0') > 0
-            for p in products
-        )
+        has_items = any(float(request.form.get(f'qty_{p["id"]}', '0') or '0') > 0 for p in products)
         if not has_items:
             locations = db.execute("SELECT * FROM locations WHERE active=1 ORDER BY name").fetchall()
             db.close()
@@ -386,10 +413,24 @@ def store_order():
                 db.execute("INSERT INTO order_items (order_id, product_id, quantity) VALUES (?,?,?)",
                            (order_id, p['id'], qty))
         db.commit()
+        order = db.execute("SELECT o.*, l.name as location_name FROM orders o JOIN locations l ON o.location_id=l.id WHERE o.id=?", (order_id,)).fetchone()
+        items = db.execute("SELECT oi.*, p.name as product_name, p.unit FROM order_items oi JOIN products p ON oi.product_id=p.id WHERE oi.order_id=? AND oi.quantity>0", (order_id,)).fetchall()
         db.close()
-        return render_template('store/success.html', message='Comanda a fost trimisă cu succes!')
+        return render_template('store/order_view.html', order=order, items=items, already_sent=False)
 
     location_id = request.args.get('location_id')
+    # Daca au trimis deja azi, arata view-ul
+    if location_id:
+        existing = db.execute(
+            "SELECT id FROM orders WHERE location_id=? AND date(submitted_at)=?",
+            (location_id, today)
+        ).fetchone()
+        if existing:
+            order = db.execute("SELECT o.*, l.name as location_name FROM orders o JOIN locations l ON o.location_id=l.id WHERE o.id=?", (existing['id'],)).fetchone()
+            items = db.execute("SELECT oi.*, p.name as product_name, p.unit FROM order_items oi JOIN products p ON oi.product_id=p.id WHERE oi.order_id=? AND oi.quantity>0", (existing['id'],)).fetchall()
+            db.close()
+            return render_template('store/order_view.html', order=order, items=items, already_sent=True)
+
     locations = db.execute("SELECT * FROM locations WHERE active=1 ORDER BY name").fetchall()
     products = db.execute("SELECT * FROM products WHERE active=1 ORDER BY name").fetchall()
     db.close()
