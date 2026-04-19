@@ -119,9 +119,11 @@ def products():
 def add_product():
     name = request.form['name'].strip()
     unit = request.form.get('unit', 'buc').strip()
+    cod = request.form.get('cod', '').strip()
+    ean = request.form.get('ean', '').strip()
     if name:
         db = get_db()
-        db.execute("INSERT INTO products (name, unit) VALUES (?, ?)", (name, unit))
+        db.execute("INSERT INTO products (name, cod, ean, unit) VALUES (?, ?, ?, ?)", (name, cod or None, ean or None, unit))
         db.commit()
         db.close()
         flash('Produs adăugat.', 'success')
@@ -132,9 +134,11 @@ def add_product():
 def edit_product(pid):
     name = request.form['name'].strip()
     unit = request.form.get('unit', 'buc').strip()
+    cod = request.form.get('cod', '').strip()
+    ean = request.form.get('ean', '').strip()
     active = 1 if request.form.get('active') else 0
     db = get_db()
-    db.execute("UPDATE products SET name=?, unit=?, active=? WHERE id=?", (name, unit, active, pid))
+    db.execute("UPDATE products SET name=?, cod=?, ean=?, unit=?, active=? WHERE id=?", (name, cod or None, ean or None, unit, active, pid))
     db.commit()
     db.close()
     flash('Produs actualizat.', 'success')
@@ -546,6 +550,65 @@ def export_inventory_excel():
     return _excel_response(wb, 'inventar.xlsx')
 
 # ─── EXCEL IMPORT ───────────────────────────────────────────────────────────
+
+@app.route('/import/vanzare', methods=['POST'])
+@login_required
+def import_vanzare():
+    f = request.files.get('file')
+    exit_date = request.form.get('date', date.today().strftime('%Y-%m-%d'))
+    notes = request.form.get('notes', '').strip()
+    if not f or not f.filename:
+        flash('Niciun fisier selectat.', 'danger')
+        return redirect(url_for('stock'))
+    try:
+        wb = openpyxl.load_workbook(f)
+    except Exception:
+        flash('Fisier Excel invalid.', 'danger')
+        return redirect(url_for('stock'))
+    ws = wb.active
+    db = get_db()
+    added = 0
+    errors = []
+    for i, row in enumerate(ws.iter_rows(min_row=3, values_only=True), 3):
+        if not row[1] and not row[3]:
+            continue
+        cod = str(row[1]).strip() if row[1] else ''
+        ean = str(row[2]).strip() if row[2] else ''
+        name = str(row[3]).strip() if row[3] else ''
+        try:
+            quantity = float(row[4]) if row[4] else 0
+        except Exception:
+            errors.append(f'Randul {i}: cantitate invalida')
+            continue
+        price = float(row[6]) if row[6] else None
+
+        # Cauta produsul dupa cod, ean sau nume
+        product = None
+        if cod:
+            product = db.execute("SELECT id FROM products WHERE cod=?", (cod,)).fetchone()
+        if not product and ean:
+            product = db.execute("SELECT id FROM products WHERE ean=?", (ean,)).fetchone()
+        if not product and name:
+            product = db.execute("SELECT id FROM products WHERE UPPER(name)=UPPER(?)", (name,)).fetchone()
+
+        if not product:
+            errors.append(f'"{name}" (cod {cod}) - produs negasit')
+            continue
+
+        if quantity > 0:
+            db.execute("INSERT INTO stock_exits (product_id, quantity, date, notes, price) VALUES (?,?,?,?,?)",
+                       (product['id'], quantity, exit_date, notes, price))
+            added += 1
+
+    db.commit()
+    db.close()
+    msg = f'{added} produse importate ca iesire din stoc.'
+    if errors:
+        msg += f' Negasite ({len(errors)}): ' + '; '.join(errors[:5])
+        if len(errors) > 5:
+            msg += f' ... si inca {len(errors)-5}'
+    flash(msg, 'success' if not errors else 'warning')
+    return redirect(url_for('stock'))
 
 @app.route('/import/produse', methods=['POST'])
 @login_required

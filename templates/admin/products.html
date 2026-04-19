@@ -13,7 +13,7 @@
             <div class="modal-header"><h5 class="modal-title">Import produse din Excel</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
             <form method="POST" action="{{ url_for('import_products') }}" enctype="multipart/form-data">
             <div class="modal-body">
-                <p class="text-muted small">Fișierul Excel trebuie să aibă coloanele: <strong>Nume produs</strong>, <strong>Unitate masura</strong> (din randul 2).</p>
+                <p class="text-muted small">Coloane Excel: <strong>Nume produs</strong>, <strong>Unitate masura</strong>, <strong>Cod</strong>, <strong>EAN</strong> (din randul 2).</p>
                 <input type="file" name="file" class="form-control" accept=".xlsx,.xls" required>
             </div>
             <div class="modal-footer">
@@ -35,6 +35,16 @@
                         <label class="form-label">Nume produs *</label>
                         <input type="text" name="name" class="form-control" required>
                     </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label">Cod</label>
+                            <input type="text" name="cod" class="form-control" placeholder="ex: 20501455">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">EAN</label>
+                            <input type="text" name="ean" class="form-control" placeholder="ex: 2909405...">
+                        </div>
+                    </div>
                     <div class="mb-3">
                         <label class="form-label">Unitate măsură</label>
                         <select name="unit" class="form-select">
@@ -55,12 +65,13 @@
             <div class="card-header"><i class="fas fa-tag me-2"></i>Lista produse ({{ products|length }})</div>
             <div class="card-body p-0">
                 <table class="table mb-0">
-                    <thead><tr><th>#</th><th>Produs</th><th>UM</th><th>Status</th><th>Acțiuni</th></tr></thead>
+                    <thead><tr><th>#</th><th>Produs</th><th>Cod</th><th>UM</th><th>Status</th><th>Acțiuni</th></tr></thead>
                     <tbody>
                     {% for p in products %}
                     <tr class="{{ '' if p.active else 'table-secondary text-muted' }}">
                         <td>{{ loop.index }}</td>
                         <td>{{ p.name }}</td>
+                        <td><span class="text-muted small">{{ p.cod or '-' }}</span></td>
                         <td><span class="badge bg-secondary">{{ p.unit }}</span></td>
                         <td>
                             {% if p.active %}
@@ -91,6 +102,16 @@
                                         <label class="form-label">Nume</label>
                                         <input type="text" name="name" class="form-control" value="{{ p.name }}" required>
                                     </div>
+                                    <div class="row g-2 mb-3">
+                                        <div class="col-6">
+                                            <label class="form-label">Cod</label>
+                                            <input type="text" name="cod" class="form-control" value="{{ p.cod or '' }}">
+                                        </div>
+                                        <div class="col-6">
+                                            <label class="form-label">EAN</label>
+                                            <input type="text" name="ean" class="form-control" value="{{ p.ean or '' }}">
+                                        </div>
+                                    </div>
                                     <div class="mb-3">
                                         <label class="form-label">Unitate</label>
                                         <select name="unit" class="form-select">
@@ -113,7 +134,7 @@
                         </div>
                     </div>
                     {% else %}
-                    <tr><td colspan="5" class="text-center text-muted py-4">Niciun produs. Adaugă primul produs!</td></tr>
+                    <tr><td colspan="6" class="text-center text-muted py-4">Niciun produs. Adaugă primul produs!</td></tr>
                     {% endfor %}
                     </tbody>
                 </table>

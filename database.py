@@ -12,6 +12,20 @@ def init_db():
     conn = get_db()
     c = conn.cursor()
 
+    # Migrare - adauga coloane noi daca nu exista
+    try:
+        c.execute("ALTER TABLE products ADD COLUMN cod TEXT")
+    except Exception:
+        pass
+    try:
+        c.execute("ALTER TABLE products ADD COLUMN ean TEXT")
+    except Exception:
+        pass
+    try:
+        c.execute("ALTER TABLE stock_exits ADD COLUMN price REAL")
+    except Exception:
+        pass
+
     c.executescript('''
         CREATE TABLE IF NOT EXISTS locations (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -24,6 +38,8 @@ def init_db():
         CREATE TABLE IF NOT EXISTS products (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
+            cod TEXT,
+            ean TEXT,
             unit TEXT DEFAULT 'buc',
             active INTEGER DEFAULT 1,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP

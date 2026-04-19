@@ -1,9 +1,37 @@
 {% extends "base_admin.html" %}
 {% block page_title %}Stoc depozit{% endblock %}
 {% block content %}
-<div class="d-flex gap-2 mb-3">
+<div class="d-flex gap-2 mb-3 flex-wrap">
     <a href="{{ url_for('export_stock') }}" class="btn btn-success"><i class="fas fa-file-excel me-1"></i>Export Stoc Excel</a>
     <button class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#importStocModal"><i class="fas fa-upload me-1"></i>Import Stoc Excel</button>
+    <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#importVanzareModal"><i class="fas fa-file-import me-1"></i>Import Vânzare Carrefour</button>
+</div>
+
+<!-- Modal import vanzare Carrefour -->
+<div class="modal fade" id="importVanzareModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title"><i class="fas fa-file-import me-2"></i>Import vânzare din fișier Carrefour</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <form method="POST" action="{{ url_for('import_vanzare') }}" enctype="multipart/form-data">
+            <div class="modal-body">
+                <p class="text-muted small">Încarcă fișierul Excel de tip <strong>Comanda_XXXXXXXX.xlsx</strong> primit de la Carrefour. Produsele se identifică automat după <strong>Cod</strong>, <strong>EAN</strong> sau <strong>Denumire</strong>.</p>
+                <div class="mb-3">
+                    <label class="form-label">Data vânzării</label>
+                    <input type="date" name="date" class="form-control" value="{{ today }}">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Note (opțional)</label>
+                    <input type="text" name="notes" class="form-control" placeholder="ex: Comanda 26974733">
+                </div>
+                <input type="file" name="file" class="form-control" accept=".xlsx,.xls" required>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Anulează</button>
+                <button type="submit" class="btn btn-danger">Importă ca ieșire</button>
+            </div>
+            </form>
+        </div>
+    </div>
 </div>
 
 <!-- Modal import stoc -->
