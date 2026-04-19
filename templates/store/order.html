@@ -2,7 +2,12 @@
 {% block topright %}<a href="{{ url_for('store_index') }}" style="color:rgba(255,255,255,0.7)"><i class="fas fa-home"></i></a>{% endblock %}
 {% block content %}
 <h5 class="fw-bold mb-1" style="color:#1a3c5e">Comandă marfă</h5>
-<p class="text-muted small mb-4">Introdu cantitățile necesare pentru fiecare produs.</p>
+<p class="text-muted small mb-1">Introdu cantitățile necesare pentru fiecare produs.</p>
+<p class="small mb-4"><i class="fas fa-calendar-alt me-1" style="color:#e8a020"></i><strong>Data emiterii:</strong> <span id="dataComanda"></span></p>
+<script>
+    var d = new Date();
+    document.getElementById('dataComanda').textContent = d.toLocaleDateString('ro-RO', {weekday:'long', year:'numeric', month:'long', day:'numeric'});
+</script>
 
 {% if error %}
 <div class="alert alert-danger"><i class="fas fa-exclamation-circle me-2"></i>{{ error }}</div>
