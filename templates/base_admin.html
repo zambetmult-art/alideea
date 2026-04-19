@@ -46,16 +46,16 @@
 <button class="hamburger" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
 <div class="sidebar-overlay" id="overlay" onclick="toggleSidebar()"></div>
 <div class="sidebar" id="sidebar">
-    <div class="brand">ALI<span>DEEA</span></div>
-    <a href="{{ url_for('dashboard') }}" class="{{ 'active' if request.endpoint == 'dashboard' }}"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
-    <a href="{{ url_for('orders') }}" class="{{ 'active' if 'order' in request.endpoint }}">
+    <a href="{{ url_for('dashboard') }}" class="brand text-decoration-none" style="display:block">ALI<span>DEEA</span></a>
+    <a href="{{ url_for('dashboard') }}" class="{{ 'active' if request.endpoint == 'dashboard' }}" onclick="closeSidebar()"><i class="fas fa-home"></i> Acasă</a>
+    <a href="{{ url_for('orders') }}" class="{{ 'active' if 'order' in request.endpoint }}" onclick="closeSidebar()">
         <i class="fas fa-shopping-cart"></i> Comenzi
         {% if unseen > 0 %}<span class="badge-notify">{{ unseen }}</span>{% endif %}
     </a>
-    <a href="{{ url_for('inventory') }}" class="{{ 'active' if 'inventory' in request.endpoint }}"><i class="fas fa-clipboard-list"></i> Inventar</a>
-    <a href="{{ url_for('stock') }}" class="{{ 'active' if request.endpoint == 'stock' }}"><i class="fas fa-boxes"></i> Stoc</a>
-    <a href="{{ url_for('products') }}" class="{{ 'active' if 'product' in request.endpoint }}"><i class="fas fa-tag"></i> Produse</a>
-    <a href="{{ url_for('locations') }}" class="{{ 'active' if 'location' in request.endpoint }}"><i class="fas fa-map-marker-alt"></i> Locații</a>
+    <a href="{{ url_for('inventory') }}" class="{{ 'active' if 'inventory' in request.endpoint }}" onclick="closeSidebar()"><i class="fas fa-clipboard-list"></i> Inventar</a>
+    <a href="{{ url_for('stock') }}" class="{{ 'active' if request.endpoint == 'stock' }}" onclick="closeSidebar()"><i class="fas fa-boxes"></i> Stoc</a>
+    <a href="{{ url_for('products') }}" class="{{ 'active' if 'product' in request.endpoint }}" onclick="closeSidebar()"><i class="fas fa-tag"></i> Produse</a>
+    <a href="{{ url_for('locations') }}" class="{{ 'active' if 'location' in request.endpoint }}" onclick="closeSidebar()"><i class="fas fa-map-marker-alt"></i> Locații</a>
     <a href="{{ url_for('logout') }}" style="position:absolute;bottom:0;width:100%;"><i class="fas fa-sign-out-alt"></i> Ieșire</a>
 </div>
 <div class="main-content">
@@ -81,6 +81,10 @@
     function toggleSidebar() {
         document.getElementById('sidebar').classList.toggle('open');
         document.getElementById('overlay').classList.toggle('open');
+    }
+    function closeSidebar() {
+        document.getElementById('sidebar').classList.remove('open');
+        document.getElementById('overlay').classList.remove('open');
     }
     // Poll for new orders every 30s
     setInterval(() => {
