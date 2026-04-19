@@ -9,7 +9,7 @@
     <style>
         :root { --primary: #1a3c5e; --accent: #e8a020; }
         body { background: #f4f6f9; font-family: 'Segoe UI', sans-serif; }
-        .sidebar { width: 240px; min-height: 100vh; background: var(--primary); position: fixed; top: 0; left: 0; z-index: 100; }
+        .sidebar { width: 240px; min-height: 100vh; background: var(--primary); position: fixed; top: 0; left: 0; z-index: 1050; transition: transform 0.3s; }
         .sidebar .brand { padding: 20px; color: white; font-size: 1.4rem; font-weight: 700; border-bottom: 1px solid rgba(255,255,255,0.1); letter-spacing: 2px; }
         .sidebar .brand span { color: var(--accent); }
         .sidebar a { display: block; padding: 12px 20px; color: rgba(255,255,255,0.8); text-decoration: none; transition: all 0.2s; }
@@ -29,10 +29,23 @@
         .stat-card.green { background: linear-gradient(135deg, #28a745, #5cb85c); }
         .stat-card.red { background: linear-gradient(135deg, #dc3545, #e56575); }
         .table th { background: #f8f9fa; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; }
+        .hamburger { display: none; background: var(--primary); border: none; color: white; font-size: 1.4rem; padding: 10px 14px; position: fixed; top: 10px; left: 10px; z-index: 1100; border-radius: 8px; }
+        .sidebar-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1040; }
+        @media (max-width: 768px) {
+            .hamburger { display: block; }
+            .sidebar { transform: translateX(-100%); }
+            .sidebar.open { transform: translateX(0); }
+            .sidebar-overlay.open { display: block; }
+            .main-content { margin-left: 0; padding: 16px; padding-top: 60px; }
+            .topbar { padding: 10px 14px; }
+            .table { font-size: 0.85rem; }
+        }
     </style>
 </head>
 <body>
-<div class="sidebar">
+<button class="hamburger" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
+<div class="sidebar-overlay" id="overlay" onclick="toggleSidebar()"></div>
+<div class="sidebar" id="sidebar">
     <div class="brand">ALI<span>DEEA</span></div>
     <a href="{{ url_for('dashboard') }}" class="{{ 'active' if request.endpoint == 'dashboard' }}"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
     <a href="{{ url_for('orders') }}" class="{{ 'active' if 'order' in request.endpoint }}">
@@ -65,6 +78,10 @@
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+    function toggleSidebar() {
+        document.getElementById('sidebar').classList.toggle('open');
+        document.getElementById('overlay').classList.toggle('open');
+    }
     // Poll for new orders every 30s
     setInterval(() => {
         fetch('/api/unseen-orders').then(r => r.json()).then(data => {
