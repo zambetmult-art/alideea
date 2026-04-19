@@ -1,0 +1,79 @@
+{% extends "base_admin.html" %}
+{% block page_title %}Locații{% endblock %}
+{% block content %}
+<div class="row g-4">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header"><i class="fas fa-plus me-2"></i>Adaugă locație</div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('add_location') }}">
+                    <div class="mb-3">
+                        <label class="form-label">Nume locație *</label>
+                        <input type="text" name="name" class="form-control" placeholder="ex: Carrefour Băneasa" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Oraș</label>
+                        <input type="text" name="city" class="form-control" placeholder="ex: București">
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Adaugă locație</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header"><i class="fas fa-map-marker-alt me-2"></i>Locații Carrefour ({{ locations|length }})</div>
+            <div class="card-body p-0">
+                <table class="table mb-0">
+                    <thead><tr><th>#</th><th>Locație</th><th>Oraș</th><th>Status</th><th>Acțiuni</th></tr></thead>
+                    <tbody>
+                    {% for l in locations %}
+                    <tr class="{{ '' if l.active else 'table-secondary text-muted' }}">
+                        <td>{{ loop.index }}</td>
+                        <td>{{ l.name }}</td>
+                        <td>{{ l.city or '-' }}</td>
+                        <td>
+                            {% if l.active %}<span class="badge bg-success">Activă</span>
+                            {% else %}<span class="badge bg-secondary">Inactivă</span>{% endif %}
+                        </td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editLocModal{{ l.id }}">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    <div class="modal fade" id="editLocModal{{ l.id }}" tabindex="-1">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header"><h5 class="modal-title">Editează locație</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                                <form method="POST" action="{{ url_for('edit_location', lid=l.id) }}">
+                                <div class="modal-body">
+                                    <div class="mb-3">
+                                        <label class="form-label">Nume</label>
+                                        <input type="text" name="name" class="form-control" value="{{ l.name }}" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Oraș</label>
+                                        <input type="text" name="city" class="form-control" value="{{ l.city or '' }}">
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="active" {{ 'checked' if l.active }}>
+                                        <label class="form-check-label">Activă</label>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Anulează</button>
+                                    <button type="submit" class="btn btn-primary">Salvează</button>
+                                </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

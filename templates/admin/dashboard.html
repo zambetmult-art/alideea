@@ -1,0 +1,85 @@
+{% extends "base_admin.html" %}
+{% block page_title %}Dashboard{% endblock %}
+{% block content %}
+<div class="row g-4 mb-4">
+    <div class="col-md-3">
+        <div class="stat-card blue">
+            <div class="fs-1 fw-bold">{{ total_locations }}</div>
+            <div>Locații active</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card orange">
+            <div class="fs-1 fw-bold">{{ total_products }}</div>
+            <div>Produse active</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card {% if unseen > 0 %}red{% else %}green{% endif %}">
+            <div class="fs-1 fw-bold">{{ unseen }}</div>
+            <div>Comenzi noi</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card green">
+            <div class="fs-1 fw-bold">{{ recent_inventory|length }}</div>
+            <div>Inventare recente</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="fas fa-shopping-cart me-2"></i>Comenzi recente</span>
+                <a href="{{ url_for('orders') }}" class="btn btn-sm btn-light">Vezi toate</a>
+            </div>
+            <div class="card-body p-0">
+                <table class="table mb-0">
+                    <thead><tr><th>Locație</th><th>Status</th><th>Data</th></tr></thead>
+                    <tbody>
+                    {% for o in recent_orders %}
+                    <tr class="{{ 'table-warning' if not o.seen }}">
+                        <td><a href="{{ url_for('order_detail', oid=o.id) }}">{{ o.location_name }}</a></td>
+                        <td>
+                            <span class="badge {% if o.status == 'nou' %}bg-danger{% elif o.status == 'procesata' %}bg-warning text-dark{% else %}bg-success{% endif %}">
+                                {{ o.status }}
+                            </span>
+                        </td>
+                        <td class="text-muted small">{{ o.submitted_at[:16] }}</td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="3" class="text-center text-muted py-3">Nicio comandă</td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="fas fa-clipboard-list me-2"></i>Inventare recente</span>
+                <a href="{{ url_for('inventory') }}" class="btn btn-sm btn-light">Vezi toate</a>
+            </div>
+            <div class="card-body p-0">
+                <table class="table mb-0">
+                    <thead><tr><th>Locație</th><th>Săptămâna</th><th>Data</th></tr></thead>
+                    <tbody>
+                    {% for r in recent_inventory %}
+                    <tr>
+                        <td><a href="{{ url_for('inventory_detail', rid=r.id) }}">{{ r.location_name }}</a></td>
+                        <td>{{ r.week_date }}</td>
+                        <td class="text-muted small">{{ r.submitted_at[:16] }}</td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="3" class="text-center text-muted py-3">Niciun inventar</td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

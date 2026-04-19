@@ -1,0 +1,31 @@
+{% extends "base_admin.html" %}
+{% block page_title %}Inventar #{{ report.id }}{% endblock %}
+{% block content %}
+<div class="mb-3">
+    <a href="{{ url_for('inventory') }}" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-1"></i>Înapoi</a>
+</div>
+<div class="card">
+    <div class="card-header">
+        <i class="fas fa-clipboard-list me-2"></i>
+        {{ report.location_name }} — Săptămâna {{ report.week_date }}
+        <span class="text-light small ms-3">Trimis: {{ report.submitted_at[:16] }}</span>
+    </div>
+    <div class="card-body p-0">
+        <table class="table mb-0">
+            <thead><tr><th>#</th><th>Produs</th><th>Cantitate în magazin</th><th>UM</th></tr></thead>
+            <tbody>
+            {% for item in items %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td>{{ item.product_name }}</td>
+                <td><strong>{{ item.quantity|int if item.quantity == item.quantity|int else item.quantity }}</strong></td>
+                <td><span class="badge bg-secondary">{{ item.unit }}</span></td>
+            </tr>
+            {% else %}
+            <tr><td colspan="4" class="text-center text-muted py-3">Fără date</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,121 @@
+{% extends "base_admin.html" %}
+{% block page_title %}Stoc depozit{% endblock %}
+{% block content %}
+<div class="d-flex gap-2 mb-3">
+    <a href="{{ url_for('export_stock') }}" class="btn btn-success"><i class="fas fa-file-excel me-1"></i>Export Stoc Excel</a>
+    <button class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#importStocModal"><i class="fas fa-upload me-1"></i>Import Stoc Excel</button>
+</div>
+
+<!-- Modal import stoc -->
+<div class="modal fade" id="importStocModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title">Import stoc din Excel</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <form method="POST" action="{{ url_for('import_stock') }}" enctype="multipart/form-data">
+            <div class="modal-body">
+                <p class="text-muted small">Coloane Excel: <strong>Produs</strong>, <strong>Cantitate</strong>, <strong>Data</strong> (YYYY-MM-DD), <strong>Note</strong> (opțional).</p>
+                <div class="mb-3">
+                    <label class="form-label">Tip înregistrare</label>
+                    <select name="tip" class="form-select">
+                        <option value="intrare">Intrare în stoc</option>
+                        <option value="iesire">Ieșire din stoc</option>
+                    </select>
+                </div>
+                <input type="file" name="file" class="form-control" accept=".xlsx,.xls" required>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Anulează</button>
+                <button type="submit" class="btn btn-success">Importă</button>
+            </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header"><i class="fas fa-arrow-down me-2"></i>Adaugă intrare</div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('add_entry') }}">
+                    <div class="row g-2">
+                        <div class="col-12">
+                            <select name="product_id" class="form-select" required>
+                                <option value="">Selectează produs...</option>
+                                {% for s in stock_data %}
+                                <option value="{{ s.id }}">{{ s.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <input type="number" name="quantity" class="form-control" placeholder="Cantitate" step="0.01" min="0.01" required>
+                        </div>
+                        <div class="col-6">
+                            <input type="date" name="date" class="form-control" value="{{ today }}" required>
+                        </div>
+                        <div class="col-12">
+                            <input type="text" name="notes" class="form-control" placeholder="Note (opțional)">
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-success w-100"><i class="fas fa-plus me-1"></i>Adaugă intrare</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header"><i class="fas fa-arrow-up me-2"></i>Adaugă ieșire</div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('add_exit') }}">
+                    <div class="row g-2">
+                        <div class="col-12">
+                            <select name="product_id" class="form-select" required>
+                                <option value="">Selectează produs...</option>
+                                {% for s in stock_data %}
+                                <option value="{{ s.id }}">{{ s.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <input type="number" name="quantity" class="form-control" placeholder="Cantitate" step="0.01" min="0.01" required>
+                        </div>
+                        <div class="col-6">
+                            <input type="date" name="date" class="form-control" value="{{ today }}" required>
+                        </div>
+                        <div class="col-12">
+                            <input type="text" name="notes" class="form-control" placeholder="Note (opțional)">
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-danger w-100"><i class="fas fa-minus me-1"></i>Adaugă ieșire</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header"><i class="fas fa-boxes me-2"></i>Stoc curent</div>
+    <div class="card-body p-0">
+        <table class="table mb-0">
+            <thead><tr><th>Produs</th><th class="text-center">Intrări</th><th class="text-center">Ieșiri</th><th class="text-center">Stoc</th><th>UM</th></tr></thead>
+            <tbody>
+            {% for s in stock_data %}
+            <tr class="{{ 'table-danger' if s.stoc < 0 else '' }}">
+                <td>{{ s.name }}</td>
+                <td class="text-center text-success fw-bold">{{ s.intrari|int if s.intrari == s.intrari|int else s.intrari }}</td>
+                <td class="text-center text-danger fw-bold">{{ s.iesiri|int if s.iesiri == s.iesiri|int else s.iesiri }}</td>
+                <td class="text-center fw-bold fs-5">{{ s.stoc|int if s.stoc == s.stoc|int else s.stoc }}</td>
+                <td><span class="badge bg-secondary">{{ s.unit }}</span></td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5" class="text-center text-muted py-4">Niciun produs. Adaugă produse mai întâi.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
