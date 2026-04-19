@@ -24,7 +24,7 @@ with app.app_context():
     init_db()
 
 ADMIN_USER = 'admin'
-ADMIN_PASS = 'alideea123'
+ADMIN_PASS = 'Sascanoua@12'
 
 @app.context_processor
 def inject_server_url():
