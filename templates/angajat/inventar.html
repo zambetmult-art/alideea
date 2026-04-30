@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <title>Inventar - {{ locatie.nume }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body { background: #f5f7fa; font-size: 16px; }
+        .header-bar {
+            background: #1a3a5c;
+            color: white;
+            padding: 14px 16px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .header-bar .locatie { font-size: 13px; opacity: 0.8; }
+        .produs-card {
+            background: white;
+            border-radius: 10px;
+            padding: 14px 16px;
+            margin-bottom: 10px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .produs-card .denumire {
+            flex: 1;
+            font-weight: 600;
+            font-size: 15px;
+            color: #1e2a3a;
+        }
+        .produs-card .stoc-sistem {
+            font-size: 12px;
+            color: #888;
+        }
+        .qty-input {
+            width: 100px;
+            text-align: center;
+            font-size: 18px;
+            font-weight: 700;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            padding: 8px 4px;
+        }
+        .qty-input:focus {
+            border-color: #0d6efd;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(13,110,253,0.15);
+        }
+        .qty-input.filled { border-color: #198754; background: #f0fff4; }
+        .qty-input.invalid { border-color: #dc3545; background: #fff5f5; }
+        .btn-trimite {
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            padding: 16px;
+            background: white;
+            border-top: 1px solid #e9ecef;
+            z-index: 200;
+        }
+        .content-area { padding: 16px; padding-bottom: 90px; }
+        .progress-bar-custom {
+            height: 6px;
+            background: #e9ecef;
+            border-radius: 3px;
+            margin: 8px 0 4px;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            background: #198754;
+            border-radius: 3px;
+            transition: width 0.3s;
+        }
+        .counter { font-size: 13px; color: #666; }
+        .um-badge {
+            background: #e3f2fd;
+            color: #1565c0;
+            padding: 2px 7px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+
+<div class="header-bar">
+    <div class="d-flex justify-content-between align-items-start">
+        <div>
+            <div class="fw-bold"><i class="bi bi-clipboard-check me-2"></i>Inventar zilnic</div>
+            <div class="locatie"><i class="bi bi-geo-alt me-1"></i>{{ locatie.nume }} &nbsp;·&nbsp; {{ azi }}</div>
+        </div>
+        <a href="/logout" class="btn btn-sm btn-outline-light">
+            <i class="bi bi-box-arrow-right"></i>
+        </a>
+    </div>
+    <div class="mt-2">
+        <div class="d-flex justify-content-between counter">
+            <span id="counterText">0 din {{ detalii|length }} completate</span>
+            <span id="counterPct">0%</span>
+        </div>
+        <div class="progress-bar-custom">
+            <div class="progress-bar-fill" id="progressBar" style="width:0%"></div>
+        </div>
+    </div>
+</div>
+
+<div class="content-area">
+    <div class="alert alert-info py-2 small mb-3">
+        <i class="bi bi-info-circle me-1"></i>
+        Introdu cantitatile gasite fizic pe raft. Dupa ce trimiti <strong>nu mai poti modifica</strong>.
+    </div>
+
+    <form method="POST" action="/angajat/salveaza" id="formInventar">
+        <input type="hidden" name="inv_id" value="{{ inv_id }}">
+
+        {% for d in detalii %}
+        <div class="produs-card">
+            <input type="hidden" name="detaliu_id" value="{{ d.id }}">
+            <div>
+                <div class="denumire">{{ d.denumire }}</div>
+                <div class="stoc-sistem">Stoc sistem: {{ "%.2f"|format(d.cantitate_sistem) }} <span class="um-badge">{{ d.unitate_masura }}</span></div>
+            </div>
+            <input type="number"
+                   name="cantitate_fizica"
+                   class="qty-input"
+                   value="{{ "%.2f"|format(d.cantitate_fizica) }}"
+                   min="0" step="0.01"
+                   inputmode="decimal"
+                   placeholder="0"
+                   data-idx="{{ loop.index0 }}"
+                   required>
+        </div>
+        {% endfor %}
+
+        <div class="btn-trimite">
+            <button type="button" class="btn btn-success w-100 py-3 fw-bold fs-5" id="btnTrimite"
+                    onclick="confirmaTrimitre()">
+                <i class="bi bi-check-circle me-2"></i>Trimite inventarul
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Modal confirmare -->
+<div class="modal fade" id="modalConfirmare" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-body text-center py-4">
+                <i class="bi bi-exclamation-triangle text-warning" style="font-size:48px"></i>
+                <h5 class="mt-3 fw-bold">Esti sigura?</h5>
+                <p class="text-muted">Dupa ce trimiti inventarul <strong>nu mai poti face modificari</strong>.</p>
+                <div id="rezumatNecompletat" class="alert alert-warning small d-none"></div>
+                <div class="d-flex gap-2 justify-content-center mt-3">
+                    <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Inapoi</button>
+                    <button class="btn btn-success fw-bold px-4" onclick="document.getElementById('formInventar').submit()">
+                        <i class="bi bi-check-lg me-1"></i>Da, trimite
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+const inputs = document.querySelectorAll('.qty-input');
+const total = inputs.length;
+
+function updateProgress() {
+    let completate = 0;
+    inputs.forEach(inp => {
+        const val = inp.value.trim();
+        if (val !== '' && !isNaN(parseFloat(val)) && parseFloat(val) >= 0) {
+            inp.classList.add('filled');
+            inp.classList.remove('invalid');
+            completate++;
+        } else if (val !== '') {
+            inp.classList.add('invalid');
+            inp.classList.remove('filled');
+        } else {
+            inp.classList.remove('filled', 'invalid');
+        }
+    });
+    const pct = Math.round((completate / total) * 100);
+    document.getElementById('progressBar').style.width = pct + '%';
+    document.getElementById('counterText').textContent = completate + ' din ' + total + ' completate';
+    document.getElementById('counterPct').textContent = pct + '%';
+}
+
+inputs.forEach(inp => {
+    inp.addEventListener('input', updateProgress);
+    // Auto-select la click
+    inp.addEventListener('focus', function() { this.select(); });
+    // Enter trece la urmatorul
+    inp.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            const idx = parseInt(this.dataset.idx);
+            const next = document.querySelector(`[data-idx="${idx+1}"]`);
+            if (next) next.focus();
+        }
+    });
+});
+
+function confirmaTrimitre() {
+    // Valideaza ca toate sunt completate
+    const necompletat = [];
+    inputs.forEach(inp => {
+        if (inp.value.trim() === '') {
+            const card = inp.closest('.produs-card');
+            const denumire = card.querySelector('.denumire').textContent;
+            necompletat.push(denumire);
+        }
+    });
+
+    const rezDiv = document.getElementById('rezumatNecompletat');
+    if (necompletat.length > 0) {
+        rezDiv.textContent = necompletat.length + ' produse necompletate: ' + necompletat.slice(0,3).join(', ') + (necompletat.length > 3 ? '...' : '');
+        rezDiv.classList.remove('d-none');
+    } else {
+        rezDiv.classList.add('d-none');
+    }
+
+    new bootstrap.Modal(document.getElementById('modalConfirmare')).show();
+}
+
+// Initializeaza progress
+updateProgress();
+</script>
+</body>
+</html>

@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}Analiza Per Companie{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h4><i class="bi bi-building me-2 text-primary"></i>Analiza Per Companie</h4>
+    <span class="text-muted">Evolutia vanzarilor la nivel de companie</span>
+</div>
+
+<!-- Totale generale -->
+<div class="row mb-4 g-3">
+    <div class="col-md-4">
+        <div class="stat-card bg-primary">
+            <div class="stat-icon"><i class="bi bi-currency-dollar"></i></div>
+            <div class="stat-value">{{ "%.0f"|format(total.total_val) }}</div>
+            <div class="stat-label">Valoare totala vanzari (lei)</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card bg-success">
+            <div class="stat-icon"><i class="bi bi-box-seam"></i></div>
+            <div class="stat-value">{{ "%.0f"|format(total.total_cant) }}</div>
+            <div class="stat-label">Cantitate totala vanduta (kg)</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card bg-info">
+            <div class="stat-icon"><i class="bi bi-shop"></i></div>
+            <div class="stat-value">{{ total.nr_locatii }}</div>
+            <div class="stat-label">Locatii active</div>
+        </div>
+    </div>
+</div>
+
+<!-- Grafic evolutie lunara -->
+<div class="card mb-4">
+    <div class="card-header">Evolutie lunara vanzari</div>
+    <div class="card-body">
+        <canvas id="chartCompanie" height="100"></canvas>
+    </div>
+</div>
+
+<!-- Tabel lunar -->
+<div class="card">
+    <div class="card-header">Detaliu pe luni</div>
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th class="ps-3">Luna</th>
+                    <th class="text-end">Valoare (lei)</th>
+                    <th class="text-end">Cantitate (kg)</th>
+                    <th>Evolutie</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for r in per_luna %}
+            <tr>
+                <td class="ps-3 fw-semibold">{{ r.luna }}</td>
+                <td class="text-end">{{ "%.2f"|format(r.valoare) }}</td>
+                <td class="text-end">{{ "%.2f"|format(r.cantitate) }}</td>
+                <td style="width:200px">
+                    <div class="progress" style="height:8px">
+                        {% set max_val = per_luna|map(attribute='valoare')|max %}
+                        <div class="progress-bar bg-primary" style="width:{{ (r.valoare / max_val * 100)|int if max_val > 0 else 0 }}%"></div>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+const labels = {{ per_luna|map(attribute='luna')|list|tojson }};
+const values = {{ per_luna|map(attribute='valoare')|list|tojson }};
+new Chart(document.getElementById('chartCompanie'), {
+    type: 'line',
+    data: {
+        labels: labels,
+        datasets: [{
+            label: 'Valoare vanzari (lei)',
+            data: values,
+            borderColor: '#0d6efd',
+            backgroundColor: 'rgba(13,110,253,0.1)',
+            fill: true,
+            tension: 0.3
+        }]
+    },
+    options: { responsive: true, plugins: { legend: { display: false } } }
+});
+</script>
+{% endblock %}

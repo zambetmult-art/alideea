@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Editeaza utilizator' if utilizator else 'Utilizator nou' }}{% endblock %}
+{% block content %}
+<div class="page-header"><h4><i class="bi bi-people me-2 text-primary"></i>{{ 'Editeaza utilizator' if utilizator else 'Utilizator nou' }}</h4></div>
+<div class="card" style="max-width:500px">
+    <div class="card-body">
+        <form method="POST">
+            <div class="mb-3">
+                <label class="form-label">Username <span class="text-danger">*</span></label>
+                <input type="text" name="username" class="form-control" required value="{{ utilizator.username if utilizator else '' }}">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Parola {{ '' if utilizator else '*' }}</label>
+                <input type="password" name="parola" class="form-control" {{ 'required' if not utilizator }}
+                       placeholder="{{ 'Lasa gol pentru a nu schimba' if utilizator else 'Parola' }}">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Nume complet</label>
+                <input type="text" name="nume_complet" class="form-control" value="{{ utilizator.nume_complet if utilizator else '' }}">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Rol</label>
+                <select name="rol" class="form-select">
+                    <option value="admin" {{ 'selected' if utilizator and utilizator.rol == 'admin' }}>Administrator</option>
+                    <option value="angajat" {{ 'selected' if not utilizator or utilizator.rol == 'angajat' }}>Angajat</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Locatie (pentru angajati)</label>
+                <select name="locatie_id" class="form-select">
+                    <option value="">-- Toate locatiile (admin) --</option>
+                    {% for l in locatii %}
+                    <option value="{{ l.id }}" {{ 'selected' if utilizator and utilizator.locatie_id == l.id }}>{{ l.nume }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Salveaza</button>
+                <a href="/utilizatori/" class="btn btn-outline-secondary">Anuleaza</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

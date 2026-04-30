@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}Comparatii Vanzari{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h4><i class="bi bi-bar-chart-line me-2 text-primary"></i>Comparatii Vanzari</h4>
+    <span class="text-muted">Compara perioade, magazine si tendinte</span>
+</div>
+
+<!-- Comparatie magazine -->
+<div class="card mb-4">
+    <div class="card-header fw-semibold">Comparatie magazine — saptamana curenta vs trecuta vs luna</div>
+    <div class="card-body">
+        <canvas id="chartComparatie" height="100"></canvas>
+        <div class="mt-3">
+            <button onclick="incarcaComparatie()" class="btn btn-primary btn-sm">
+                <i class="bi bi-arrow-clockwise me-1"></i>Actualizeaza
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Comparatie 2 perioade -->
+<div class="card mb-4">
+    <div class="card-header fw-semibold">Compara 2 perioade</div>
+    <div class="card-body">
+        <div class="row g-3 mb-3">
+            <div class="col-md-3">
+                <label class="form-label small fw-semibold">Perioada 1 — De la</label>
+                <input type="date" id="p1start" class="form-control form-control-sm">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small fw-semibold">Perioada 1 — Pana la</label>
+                <input type="date" id="p1end" class="form-control form-control-sm">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small fw-semibold">Locatie</label>
+                <select id="compLocatie" class="form-select form-select-sm">
+                    <option value="toate">Toate</option>
+                    {% for l in locatii %}
+                    <option value="{{ l.id }}">{{ l.nume }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+                <button onclick="incarcaComparatie2()" class="btn btn-primary btn-sm w-100">
+                    <i class="bi bi-search me-1"></i>Compara
+                </button>
+            </div>
+        </div>
+        <canvas id="chartComp2" height="80"></canvas>
+        <div id="rezultatComp" class="mt-3"></div>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+let chartComp = null, chartComp2 = null;
+
+async function incarcaComparatie() {
+    const data = await fetch('/analiza/api/comparatie_locatii').then(r => r.json());
+    if (chartComp) chartComp.destroy();
+    chartComp = new Chart(document.getElementById('chartComparatie'), {
+        type: 'bar',
+        data: {
+            labels: data.map(r => r.locatie.replace('CARREFOUR ', '').replace('AUCHAN ', '')),
+            datasets: [
+                { label: 'Saptamana curenta', data: data.map(r => r.saptamana_curenta), backgroundColor: 'rgba(13,110,253,0.8)' },
+                { label: 'Saptamana trecuta', data: data.map(r => r.saptamana_trecuta), backgroundColor: 'rgba(108,117,125,0.6)' },
+                { label: 'Luna curenta', data: data.map(r => r.luna_curenta), backgroundColor: 'rgba(25,135,84,0.5)' }
+            ]
+        },
+        options: { responsive: true, scales: { x: { ticks: { maxRotation: 45 } } } }
+    });
+}
+
+async function incarcaComparatie2() {
+    const start = document.getElementById('p1start').value;
+    const end = document.getElementById('p1end').value;
+    const loc = document.getElementById('compLocatie').value;
+    if (!start || !end) { alert('Selecteaza perioada'); return; }
+    const url = `/analiza/api/vanzari_pe_locatii?data_start=${start}&data_end=${end}`;
+    const data = await fetch(url).then(r => r.json());
+    const filtered = loc === 'toate' ? data : data.filter(r => r.id == loc);
+    if (chartComp2) chartComp2.destroy();
+    chartComp2 = new Chart(document.getElementById('chartComp2'), {
+        type: 'bar',
+        data: {
+            labels: filtered.map(r => r.locatie),
+            datasets: [{ label: `${start} → ${end}`, data: filtered.map(r => r.valoare), backgroundColor: 'rgba(13,110,253,0.7)' }]
+        },
+        options: { responsive: true }
+    });
+    const total = filtered.reduce((s, r) => s + r.valoare, 0);
+    document.getElementById('rezultatComp').innerHTML = `<strong>Total perioada: ${total.toFixed(2)} lei</strong>`;
+}
+
+incarcaComparatie();
+</script>
+{% endblock %}

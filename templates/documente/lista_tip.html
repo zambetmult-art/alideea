@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}{{ titlu }}{% endblock %}
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-start">
+    <div>
+        <h4><i class="bi {{ 'bi-clipboard2-pulse' if tip == 'analize' else 'bi-mortarboard' }} me-2 text-primary"></i>{{ titlu }}</h4>
+        <span class="text-muted">Toti angajatii activi — sortati dupa data expirare</span>
+    </div>
+    <a href="/documente/" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left me-1"></i>Documente
+    </a>
+</div>
+
+<div class="card">
+    <div class="card-body p-0" style="overflow-x:auto;">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th class="ps-3">Angajat</th>
+                    <th>Locatie</th>
+                    <th>Data emitere</th>
+                    <th>Data expirare</th>
+                    <th>Status</th>
+                    <th>Observatii</th>
+                    {% if current_user.is_manager() %}<th></th>{% endif %}
+                </tr>
+            </thead>
+            <tbody>
+            {% for r in rezultate %}
+            <tr class="{{ 'table-danger' if r.status == 'expirat' else ('table-warning' if r.status == 'expira_curand' else '') }}">
+                <td class="ps-3 fw-semibold">
+                    <a href="/documente/angajat/{{ r.id }}" class="text-decoration-none">{{ r.nume }}</a>
+                </td>
+                <td class="text-muted small">{{ r.locatie_nume or '—' }}</td>
+                <td>{{ r.data_emitere or '—' }}</td>
+                <td>{{ r.data_expirare or '—' }}</td>
+                <td>
+                    <span class="badge {{ r.badge[0] }}">{{ r.badge[1] }}</span>
+                </td>
+                <td class="text-muted small">{{ r.observatii or '—' }}</td>
+                {% if current_user.is_manager() %}
+                <td>
+                    <a href="/documente/angajat/{{ r.id }}" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-pencil"></i>
+                    </a>
+                </td>
+                {% endif %}
+            </tr>
+            {% else %}
+            <tr><td colspan="7" class="text-center py-4 text-muted">Nicio inregistrare.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

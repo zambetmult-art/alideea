@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Import Produse{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h4><i class="bi bi-file-earmark-excel me-2 text-success"></i>Import produse din Excel</h4>
+</div>
+<div class="row g-3">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <form method="POST" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label class="form-label">Fisier Excel (.xlsx sau .xls)</label>
+                        <input type="file" name="fisier" class="form-control" accept=".xlsx,.xls" required>
+                    </div>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-upload me-1"></i>Importa
+                    </button>
+                    <a href="/produse/" class="btn btn-outline-secondary ms-2">Anuleaza</a>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card bg-light">
+            <div class="card-body">
+                <h6 class="fw-bold"><i class="bi bi-info-circle me-1 text-primary"></i>Format fisier Excel</h6>
+                <p class="small text-muted mb-2">Fisierul trebuie sa contina coloanele (numele coloanelor nu conteaza ordinea):</p>
+                <table class="table table-sm table-bordered small">
+                    <thead class="table-light"><tr><th>Coloana</th><th>Obligatoriu</th></tr></thead>
+                    <tbody>
+                        <tr><td>denumire / articol / nume</td><td><span class="text-danger">Da</span></td></tr>
+                        <tr><td>cod articol / cod_articol</td><td>Nu</td></tr>
+                        <tr><td>cod ean / cod_ean</td><td>Nu</td></tr>
+                        <tr><td>unitate masura / um</td><td>Nu (default: kg)</td></tr>
+                        <tr><td>categorie</td><td>Nu</td></tr>
+                        <tr><td>pret achizitie</td><td>Nu</td></tr>
+                        <tr><td>pret vanzare / pret</td><td>Nu</td></tr>
+                    </tbody>
+                </table>
+                <p class="small text-muted mb-0">Daca produsul exista deja (dupa cod sau denumire), va fi actualizat.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

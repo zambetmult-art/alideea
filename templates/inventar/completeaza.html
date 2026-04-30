@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% block title %}Completeaza Inventar{% endblock %}
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-start">
+    <div>
+        <h4><i class="bi bi-clipboard-check me-2 text-primary"></i>Inventar - {{ inv.locatie_nume }} - {{ inv.data }}</h4>
+        <span class="text-muted">Completeaza cantitatile</span>
+    </div>
+    <button type="button" class="btn btn-outline-info btn-sm" id="btnPreiaSistem">
+        <i class="bi bi-arrow-repeat me-1"></i>Preia din sistem
+    </button>
+</div>
+
+<form method="POST" id="formInventar">
+    <div class="card mb-3">
+        <div class="card-body p-0">
+            <table class="table mb-0" id="tabelInventar">
+                <thead>
+                    <tr>
+                        <th class="ps-3">Produs</th>
+                        <th class="text-center">UM</th>
+                        <th class="text-end" style="width:140px">Stoc Initial</th>
+                        <th class="text-end" style="width:140px">Intrari</th>
+                        <th class="text-end" style="width:120px">Stoc Scriptic</th>
+                        <th class="text-end" style="width:140px">Vanzari Reale</th>
+                        <th class="text-end pe-3" style="width:110px">Diferenta</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for d in detalii %}
+                <tr data-produs-id="{{ d.produs_id }}">
+                    <td class="ps-3 fw-semibold">{{ d.denumire }}</td>
+                    <td class="text-center"><span class="badge-um">{{ d.unitate_masura }}</span></td>
+                    <td class="text-end">
+                        <input type="hidden" name="detaliu_id" value="{{ d.id }}">
+                        <input type="number" name="stoc_initial" class="form-control form-control-sm text-end inp-calc"
+                               value="{{ "%.3f"|format(d.stoc_initial or 0) }}"
+                               min="0" step="0.001" style="width:120px; display:inline-block">
+                    </td>
+                    <td class="text-end">
+                        <input type="number" name="intrari" class="form-control form-control-sm text-end inp-calc"
+                               value="{{ "%.3f"|format(d.intrari or 0) }}"
+                               min="0" step="0.001" style="width:120px; display:inline-block">
+                    </td>
+                    <td class="text-end fw-semibold scriptic">{{ "%.3f"|format(d.scriptic) }}</td>
+                    <td class="text-end">
+                        <input type="number" name="cantitate_fizica" class="form-control form-control-sm text-end inp-faptic"
+                               value="{{ "%.3f"|format(d.cantitate_fizica or 0) }}"
+                               min="0" step="0.001" style="width:120px; display:inline-block">
+                    </td>
+                    <td class="text-end pe-3 fw-semibold diferenta">
+                        <span class="{{ 'text-danger' if d.diferenta < 0 else 'text-success' if d.diferenta > 0 else 'text-muted' }}">
+                            {{ "%.3f"|format(d.diferenta) }}
+                        </span>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="7" class="text-center py-4 text-muted">Nu exista produse pentru aceasta locatie.</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="d-flex gap-2">
+        <button type="submit" name="actiune" value="salveaza" class="btn btn-outline-primary">
+            <i class="bi bi-save me-1"></i>Salveaza progresul
+        </button>
+        <button type="submit" name="actiune" value="finalizeaza" class="btn btn-success"
+                onclick="return confirm('Finalizeaza inventarul? Nu mai poate fi modificat.')">
+            <i class="bi bi-check-circle me-1"></i>Finalizeaza inventarul
+        </button>
+        <a href="/inventar/" class="btn btn-outline-secondary">Anuleaza</a>
+    </div>
+</form>
+{% endblock %}
+{% block scripts %}
+<script>
+function recalcRow(row) {
+    const si = parseFloat(row.querySelector('input[name="stoc_initial"]').value || 0);
+    const intr = parseFloat(row.querySelector('input[name="intrari"]').value || 0);
+    const faptic = parseFloat(row.querySelector('input[name="cantitate_fizica"]').value || 0);
+    const scriptic = si + intr;
+    const diff = scriptic - faptic;
+    row.querySelector('.scriptic').textContent = scriptic.toFixed(3);
+    const tdDiff = row.querySelector('.diferenta');
+    tdDiff.innerHTML = `<span class="${diff < 0 ? 'text-danger' : diff > 0 ? 'text-success' : 'text-muted'}">${diff.toFixed(3)}</span>`;
+}
+
+document.querySelectorAll('.inp-calc, .inp-faptic').forEach(input => {
+    input.addEventListener('input', function() {
+        recalcRow(this.closest('tr'));
+    });
+});
+
+document.getElementById('btnPreiaSistem').addEventListener('click', function() {
+    if (!confirm('Preia Intrari si Vanzari din sistem?\nStocul Initial nu va fi modificat (il introduci manual).\nValorile existente pentru Intrari si Vanzari vor fi suprascrise.')) return;
+
+    const btn = this;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Se incarca...';
+
+    fetch('/inventar/api/date-sistem/{{ inv.id }}')
+        .then(r => r.json())
+        .then(data => {
+            let actualizate = 0;
+            document.querySelectorAll('#tabelInventar tbody tr[data-produs-id]').forEach(row => {
+                const pid = row.dataset.produsId;
+                if (!data[pid]) return;
+                const d = data[pid];
+                // Stoc Initial NU se suprascrie - il introduce utilizatorul manual
+                row.querySelector('input[name="intrari"]').value = d.intrari.toFixed(3);
+                row.querySelector('input[name="cantitate_fizica"]').value = d.vanzari.toFixed(3);
+                recalcRow(row);
+                actualizate++;
+            });
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-arrow-repeat me-1"></i>Preia din sistem';
+            if (actualizate > 0) {
+                const alert = document.createElement('div');
+                alert.className = 'alert alert-success alert-dismissible fade show mt-2';
+                alert.innerHTML = `<i class="bi bi-check-circle me-1"></i>${actualizate} produse actualizate din sistem. <button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
+                document.querySelector('.page-header').after(alert);
+                setTimeout(() => alert && alert.remove(), 4000);
+            }
+        })
+        .catch(() => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-arrow-repeat me-1"></i>Preia din sistem';
+            alert('Eroare la preluarea datelor din sistem.');
+        });
+});
+</script>
+{% endblock %}

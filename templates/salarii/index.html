@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+{% block title %}Salarii & Costuri - {{ '%02d'|format(luna) }}/{{ an }}{% endblock %}
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-start">
+    <div>
+        <h4><i class="bi bi-cash-coin me-2 text-primary"></i>Salarii & Costuri Angajati</h4>
+        <span class="text-muted">Editare directa in tabel — salveaza la final</span>
+    </div>
+</div>
+
+<!-- Selector luna/an -->
+<div class="card mb-3">
+    <div class="card-body py-2">
+        <form method="GET" class="d-flex gap-2 align-items-center">
+            <label class="fw-semibold text-muted small">LUNA:</label>
+            <select name="luna" class="form-select form-select-sm" style="width:80px" onchange="this.form.submit()">
+                {% for l in range(1, 13) %}
+                <option value="{{ l }}" {{ 'selected' if l == luna }}>{{ '%02d'|format(l) }}</option>
+                {% endfor %}
+            </select>
+            <label class="fw-semibold text-muted small">AN:</label>
+            <select name="an" class="form-select form-select-sm" style="width:90px" onchange="this.form.submit()">
+                {% for a in range(2024, 2030) %}
+                <option value="{{ a }}" {{ 'selected' if a == an }}>{{ a }}</option>
+                {% endfor %}
+            </select>
+        </form>
+    </div>
+</div>
+
+<!-- Sumar totale -->
+<div class="row mb-3 g-2">
+    <div class="col">
+        <div class="card text-center">
+            <div class="card-body py-2">
+                <div class="fw-bold text-primary">{{ "%.2f"|format(total_brut) }} lei</div>
+                <div class="text-muted" style="font-size:11px">Total Brut</div>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card text-center">
+            <div class="card-body py-2">
+                <div class="fw-bold text-success">{{ "%.2f"|format(total_net) }} lei</div>
+                <div class="text-muted" style="font-size:11px">Total Net</div>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card text-center">
+            <div class="card-body py-2">
+                <div class="fw-bold text-warning">{{ "%.2f"|format(total_bonus) }} lei</div>
+                <div class="text-muted" style="font-size:11px">Bonusuri</div>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card text-center">
+            <div class="card-body py-2">
+                <div class="fw-bold text-secondary">{{ "%.2f"|format(total_alte) }} lei</div>
+                <div class="text-muted" style="font-size:11px">Alte Costuri</div>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card text-center">
+            <div class="card-body py-2">
+                <div class="fw-bold text-danger fs-5">{{ "%.2f"|format(total_cost) }} lei</div>
+                <div class="text-muted" style="font-size:11px">TOTAL COST</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabel editabil -->
+<form method="POST" action="/salarii/salveaza">
+    <input type="hidden" name="luna" value="{{ luna }}">
+    <input type="hidden" name="an" value="{{ an }}">
+    <div class="card">
+        <div class="card-body p-0" style="overflow-x:auto;">
+            <table class="table table-hover mb-0" style="min-width:900px;">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-3">Angajat</th>
+                        <th>Locatie</th>
+                        <th>Salariu Brut</th>
+                        <th>Salariu Net</th>
+                        <th>Bonusuri</th>
+                        <th>Alte Costuri</th>
+                        <th>Total Cost</th>
+                        <th>Observatii</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for a in angajati %}
+                <tr>
+                    <td class="ps-3 fw-semibold">
+                        <input type="hidden" name="angajat_id" value="{{ a.id }}">
+                        {{ a.nume }}
+                    </td>
+                    <td class="text-muted small">{{ a.locatie_nume or '—' }}</td>
+                    <td>
+                        <input type="number" name="brut_{{ a.id }}" class="form-control form-control-sm sal-input"
+                               data-col="brut" data-row="{{ loop.index }}"
+                               value="{{ '%.2f'|format(a.salariu_brut) if a.salariu_brut else '' }}"
+                               step="0.01" min="0" placeholder="0.00" style="width:100px">
+                    </td>
+                    <td>
+                        <input type="number" name="net_{{ a.id }}" class="form-control form-control-sm"
+                               value="{{ '%.2f'|format(a.salariu_net) if a.salariu_net else '' }}"
+                               step="0.01" min="0" placeholder="0.00" style="width:100px">
+                    </td>
+                    <td>
+                        <input type="number" name="bonus_{{ a.id }}" class="form-control form-control-sm sal-input"
+                               data-col="bonus" data-row="{{ loop.index }}"
+                               value="{{ '%.2f'|format(a.bonusuri) if a.bonusuri else '' }}"
+                               step="0.01" min="0" placeholder="0.00" style="width:90px">
+                    </td>
+                    <td>
+                        <input type="number" name="alte_{{ a.id }}" class="form-control form-control-sm sal-input"
+                               data-col="alte" data-row="{{ loop.index }}"
+                               value="{{ '%.2f'|format(a.alte_costuri) if a.alte_costuri else '' }}"
+                               step="0.01" min="0" placeholder="0.00" style="width:90px">
+                    </td>
+                    <td class="fw-bold text-danger" id="total_{{ loop.index }}">
+                        {{ '%.2f'|format(a.total_cost) if a.total_cost else '0.00' }} lei
+                    </td>
+                    <td>
+                        <input type="text" name="obs_{{ a.id }}" class="form-control form-control-sm"
+                               value="{{ a.observatii or '' }}" placeholder="optional" style="width:140px">
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="mt-3">
+        <button type="submit" class="btn btn-primary">
+            <i class="bi bi-check-lg me-1"></i>Salveaza toate salariile
+        </button>
+    </div>
+</form>
+{% endblock %}
+{% block scripts %}
+<script>
+document.querySelectorAll('.sal-input').forEach(inp => {
+    inp.addEventListener('input', function() {
+        const row = this.dataset.row;
+        const brut = parseFloat(document.querySelector(`[data-col="brut"][data-row="${row}"]`)?.value || 0);
+        const bonus = parseFloat(document.querySelector(`[data-col="bonus"][data-row="${row}"]`)?.value || 0);
+        const alte = parseFloat(document.querySelector(`[data-col="alte"][data-row="${row}"]`)?.value || 0);
+        const total = brut + bonus + alte;
+        document.getElementById(`total_${row}`).textContent = total.toFixed(2) + ' lei';
+    });
+});
+</script>
+{% endblock %}

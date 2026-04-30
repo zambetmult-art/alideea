@@ -2,5 +2,12 @@ __pycache__/
 *.pyc
 *.pyo
 alideea.db
+gestiune.db
 .env
 start.bat
+porneste_tot.bat
+gmail_config.json
+uploads/
+static/delegatii_generate/
+static/template_delegatie.docx
+static/test_delegatie.docx

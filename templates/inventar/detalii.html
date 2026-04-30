@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Detalii Inventar{% endblock %}
+{% block content %}
+<div class="page-header d-flex justify-content-between">
+    <h4><i class="bi bi-clipboard-check me-2 text-primary"></i>Inventar - {{ inv.locatie_nume }} - {{ inv.data }}</h4>
+    <a href="/inventar/" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Inapoi</a>
+</div>
+<div class="card">
+    <div class="card-body p-0">
+        <table class="table mb-0">
+            <thead><tr>
+                <th class="ps-3">Produs</th>
+                <th class="text-center">UM</th>
+                <th class="text-end">Stoc Initial</th>
+                <th class="text-end">Intrari</th>
+                <th class="text-end">Stoc Scriptic</th>
+                <th class="text-end">Vanzari Reale</th>
+                <th class="text-end pe-3">Diferenta</th>
+            </tr></thead>
+            <tbody>
+            {% for d in detalii %}
+            <tr>
+                <td class="ps-3 fw-semibold">{{ d.denumire }}</td>
+                <td class="text-center"><span class="badge-um">{{ d.unitate_masura }}</span></td>
+                <td class="text-end">{{ "%.3f"|format(d.stoc_initial or 0) }}</td>
+                <td class="text-end">{{ "%.3f"|format(d.intrari or 0) }}</td>
+                <td class="text-end fw-semibold">{{ "%.3f"|format(d.scriptic) }}</td>
+                <td class="text-end">{{ "%.3f"|format(d.cantitate_fizica or 0) }}</td>
+                <td class="text-end pe-3 fw-semibold">
+                    <span class="{{ 'text-danger' if d.diferenta < 0 else 'text-success' if d.diferenta > 0 else 'text-muted' }}">
+                        {{ "%.3f"|format(d.diferenta) }}
+                    </span>
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

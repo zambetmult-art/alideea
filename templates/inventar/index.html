@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Inventar{% endblock %}
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-start">
+    <div><h4><i class="bi bi-clipboard-check me-2 text-primary"></i>Inventar</h4><span class="text-muted">Inventare saptamanale</span></div>
+    <a href="/inventar/nou" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Inventar nou</a>
+</div>
+<div class="card">
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead><tr>
+                <th class="ps-3">Data</th><th>Locatie</th><th>Efectuat de</th>
+                <th class="text-center">Produse</th><th class="text-center">Status</th>
+                <th class="text-center pe-3">Actiuni</th>
+            </tr></thead>
+            <tbody>
+            {% for i in inventare %}
+            <tr>
+                <td class="ps-3">{{ i.data }}</td>
+                <td class="fw-semibold">{{ i.locatie_nume }}</td>
+                <td>{{ i.utilizator_nume or '-' }}</td>
+                <td class="text-center"><span class="badge bg-light text-dark">{{ i.nr_produse }}</span></td>
+                <td class="text-center">
+                    <span class="badge {{ 'bg-success' if i.finalizat else 'bg-warning text-dark' }}">
+                        {{ 'Finalizat' if i.finalizat else 'In desfasurare' }}
+                    </span>
+                </td>
+                <td class="text-center pe-3">
+                    <div class="d-flex gap-1 justify-content-center">
+                        {% if not i.finalizat %}
+                        <a href="/inventar/completeaza/{{ i.id }}" class="btn btn-sm btn-warning text-dark">
+                            <i class="bi bi-pencil-square me-1"></i>Completeaza
+                        </a>
+                        {% else %}
+                        <a href="/inventar/detalii/{{ i.id }}" class="btn btn-sm btn-outline-info">
+                            <i class="bi bi-eye me-1"></i>Detalii
+                        </a>
+                        {% endif %}
+                        {% if current_user.is_manager() %}
+                        <form method="POST" action="/inventar/sterge/{{ i.id }}" style="display:inline"
+                              onsubmit="return confirm('Stergi inventarul din {{ i.data }} - {{ i.locatie_nume }}?\nAceasta actiune nu poate fi anulata.')">
+                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="6" class="text-center py-4 text-muted">Nu exista inventare. Apasa "Inventar nou" pentru a incepe.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

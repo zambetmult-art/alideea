@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block title %}Import Vanzari{% endblock %}
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-start">
+    <div><h4><i class="bi bi-file-earmark-excel me-2 text-success"></i>Import Vanzari Carrefour</h4><span class="text-muted">Rapoarte saptamanale importate</span></div>
+    <a href="/vanzari/import" class="btn btn-success btn-sm">
+        <i class="bi bi-cloud-upload me-1"></i>Import rapoarte noi
+    </a>
+</div>
+<div class="card">
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0" id="tabelVanzari">
+            <thead>
+                <tr>
+                    <th class="ps-3">Data raportare</th>
+                    <th>Saptamana</th>
+                    <th>Locatie</th>
+                    <th>Fisier</th>
+                    <th class="text-center">Produse</th>
+                    <th class="text-end">Valoare fara TVA</th>
+                    <th class="text-center pe-3">Actiuni</th>
+                </tr>
+                <tr class="bg-light border-bottom" id="rowFiltre">
+                    <th class="ps-3 py-2">
+                        <input type="text" class="form-control form-control-sm filtru" data-col="0" placeholder="Filtreaza data...">
+                    </th>
+                    <th class="py-2">
+                        <select class="form-select form-select-sm filtru" data-col="1">
+                            <option value="">Toate</option>
+                        </select>
+                    </th>
+                    <th class="py-2">
+                        <input type="text" class="form-control form-control-sm filtru" data-col="2" placeholder="Cauta locatie...">
+                    </th>
+                    <th class="py-2">
+                        <input type="text" class="form-control form-control-sm filtru" data-col="3" placeholder="Cauta fisier...">
+                    </th>
+                    <th class="py-2"></th>
+                    <th class="py-2"></th>
+                    <th class="py-2 text-center">
+                        <button class="btn btn-outline-secondary btn-sm" id="btnResetFiltre" title="Reseteaza filtrele">
+                            <i class="bi bi-x-circle"></i>
+                        </button>
+                    </th>
+                </tr>
+            </thead>
+            <tbody id="corpTabel">
+            {% for i in importuri %}
+            <tr>
+                <td class="ps-3">{{ i.data_raportare }}</td>
+                <td>{{ i.saptamana or '-' }}</td>
+                <td class="fw-semibold">{{ i.locatie_nume }}</td>
+                <td class="text-muted small">{{ i.fisier_original or '-' }}</td>
+                <td class="text-center"><span class="badge bg-light text-dark">{{ i.nr_produse }}</span></td>
+                <td class="text-end fw-semibold">{{ "%.2f"|format(i.total_valoare) }} Lei</td>
+                <td class="text-center pe-3">
+                    <a href="/vanzari/detalii/{{ i.id }}" class="btn btn-sm btn-outline-info"><i class="bi bi-eye"></i></a>
+                    <form method="POST" action="/vanzari/sterge/{{ i.id }}" class="d-inline" onsubmit="return confirm('Stergi acest import?')">
+                        <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                    </form>
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="7" class="text-center py-4 text-muted">Nu exista importuri. Apasa "Import rapoarte noi" pentru a incepe.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+(function() {
+    // Populeaza dropdown-ul Saptamana cu valori unice din tabel
+    const rows = Array.from(document.querySelectorAll('#corpTabel tr'));
+    const sapt = new Set();
+    rows.forEach(r => {
+        const cel = r.cells[1];
+        if (cel && cel.textContent.trim() !== '-') sapt.add(cel.textContent.trim());
+    });
+    const sel = document.querySelector('select.filtru[data-col="1"]');
+    Array.from(sapt).sort().reverse().forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s; opt.textContent = s;
+        sel.appendChild(opt);
+    });
+
+    // Filtrare
+    function filtreaza() {
+        const filtre = Array.from(document.querySelectorAll('.filtru')).map(f => ({
+            col: parseInt(f.dataset.col),
+            val: f.value.trim().toLowerCase()
+        }));
+        rows.forEach(row => {
+            if (!row.cells.length) return;
+            const viz = filtre.every(f => {
+                if (!f.val) return true;
+                const cel = row.cells[f.col];
+                return cel && cel.textContent.toLowerCase().includes(f.val);
+            });
+            row.style.display = viz ? '' : 'none';
+        });
+    }
+
+    document.querySelectorAll('.filtru').forEach(f => f.addEventListener('input', filtreaza));
+
+    document.getElementById('btnResetFiltre').addEventListener('click', function() {
+        document.querySelectorAll('.filtru').forEach(f => {
+            f.tagName === 'SELECT' ? f.value = '' : f.value = '';
+        });
+        filtreaza();
+    });
+})();
+</script>
+{% endblock %}

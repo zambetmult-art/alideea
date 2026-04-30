@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+{% block title %}Delegatii - Generare automata{% endblock %}
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-start">
+    <h4><i class="bi bi-file-earmark-text me-2 text-primary"></i>Generare Delegatii</h4>
+    <a href="/delegatii/setari-email" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-gear me-1"></i>Setari Email
+    </a>
+</div>
+
+<!-- Formular generare -->
+<div class="card mb-4">
+    <div class="card-header fw-semibold"><i class="bi bi-plus-circle me-2"></i>Genereaza delegatii noi</div>
+    <div class="card-body">
+        <form method="POST" action="/delegatii/genereaza" class="row g-3 align-items-end">
+            <div class="col-md-2">
+                <label class="form-label fw-semibold">Luna</label>
+                <select name="luna" class="form-select" required>
+                    {% for l in range(1, 13) %}
+                    <option value="{{ l }}" {{ 'selected' if l == luna_urm else '' }}>
+                        {{ '%02d'|format(l) }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label fw-semibold">An</label>
+                <input type="number" name="an" class="form-control" value="{{ an_urm }}"
+                       min="2024" max="2030" required>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label fw-semibold">Data emitere</label>
+                <input type="text" name="data_emitere" class="form-control"
+                       placeholder="ex: 24.04.2026"
+                       value="{{ azi.strftime('%d.%m.%Y') }}">
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100"
+                        onclick="return confirm('Generezi delegatii pentru luna selectata?')">
+                    <i class="bi bi-file-earmark-plus me-1"></i>Genereaza
+                </button>
+            </div>
+        </form>
+        <div class="mt-2 text-muted small">
+            <i class="bi bi-info-circle me-1"></i>
+            Se vor genera delegatii pentru toti angajatii activi ({{ angajati_count if angajati_count is defined else '43' }}).
+            Numerele se aloca automat secvential.
+        </div>
+    </div>
+</div>
+
+<!-- Istoric generari -->
+<div class="card">
+    <div class="card-header fw-semibold"><i class="bi bi-clock-history me-2"></i>Istoric generari</div>
+    <div class="card-body p-0">
+        {% if generari %}
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Luna / An</th>
+                    <th>Nr. delegatii</th>
+                    <th>Interval nr.</th>
+                    <th>Data generare</th>
+                    <th>Generat de</th>
+                    <th>Email</th>
+                    <th class="text-end">Actiuni</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for g in generari %}
+            <tr>
+                <td class="fw-semibold">{{ '%02d'|format(g.luna) }}/{{ g.an }}</td>
+                <td>{{ g.nr_stop - g.nr_start + 1 }}</td>
+                <td class="text-muted">{{ g.nr_start }} – {{ g.nr_stop }}</td>
+                <td class="text-muted small">{{ g.data_generare[:16] }}</td>
+                <td class="text-muted small">{{ g.username or '—' }}</td>
+                <td>
+                    {% if g.trimis_email %}
+                    <span class="badge bg-success"><i class="bi bi-check-lg"></i> Trimis</span>
+                    {% else %}
+                    <span class="badge bg-secondary">Netrimis</span>
+                    {% endif %}
+                </td>
+                <td class="text-end">
+                    <div class="d-flex gap-1 justify-content-end">
+                        <!-- Descarca -->
+                        <a href="/delegatii/descarca/{{ g.id }}" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-download"></i> Descarca
+                        </a>
+                        <!-- Trimite email -->
+                        <button type="button" class="btn btn-sm btn-outline-success"
+                                data-bs-toggle="modal" data-bs-target="#modalEmail{{ g.id }}">
+                            <i class="bi bi-envelope"></i> Email
+                        </button>
+                        <!-- Sterge -->
+                        <form method="POST" action="/delegatii/sterge/{{ g.id }}"
+                              onsubmit="return confirm('Stergi aceasta generare? Fisierul va fi sters.')">
+                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="p-4 text-center text-muted">
+            <i class="bi bi-inbox fs-1"></i>
+            <p class="mt-2">Nu exista delegatii generate inca.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Email modals -->
+{% for g in generari %}
+<div class="modal fade" id="modalEmail{{ g.id }}" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-envelope me-2"></i>Trimite delegatii {{ '%02d'|format(g.luna) }}/{{ g.an }}
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="/delegatii/trimite-email/{{ g.id }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Adresa email destinatar</label>
+                        <input type="email" name="email_dest" class="form-control"
+                               value="{{ email_dest_default or '' }}"
+                               placeholder="ex: manager@carrefour.ro" required>
+                    </div>
+                    <div class="text-muted small">
+                        Fisier: <code>delegatii_{{ g.an }}_{{ '%02d'|format(g.luna) }}.docx</code><br>
+                        Delegatii Nr. {{ g.nr_start }} – {{ g.nr_stop }}
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Anuleaza</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-send me-1"></i>Trimite
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% endblock %}

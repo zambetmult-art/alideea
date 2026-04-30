@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Editeaza' if produs else 'Produs nou' }}{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h4><i class="bi bi-box-seam me-2 text-primary"></i>{{ 'Editeaza produs' if produs else 'Produs nou' }}</h4>
+</div>
+<div class="card" style="max-width:600px">
+    <div class="card-body">
+        <form method="POST">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Cod articol</label>
+                    <input type="text" name="cod_articol" class="form-control"
+                           value="{{ produs.cod_articol if produs else '' }}">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Cod EAN</label>
+                    <input type="text" name="cod_ean" class="form-control"
+                           value="{{ produs.cod_ean if produs else '' }}">
+                </div>
+                <div class="col-12">
+                    <label class="form-label">Denumire <span class="text-danger">*</span></label>
+                    <input type="text" name="denumire" class="form-control" required
+                           value="{{ produs.denumire if produs else '' }}">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Categorie</label>
+                    <select name="categorie_id" class="form-select">
+                        <option value="">-- Selecteaza --</option>
+                        {% for c in categorii %}
+                        <option value="{{ c.id }}" {{ 'selected' if produs and produs.categorie_id == c.id }}>{{ c.nume }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Unitate masura <span class="text-danger">*</span></label>
+                    <select name="unitate_masura" class="form-select">
+                        <option value="kg">Kilogram (kg)</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Pret achizitie (Lei)</label>
+                    <input type="number" name="pret_achizitie" class="form-control" min="0" step="0.01"
+                           value="{{ produs.pret_achizitie if produs else '0' }}">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Pret vanzare (Lei)</label>
+                    <input type="number" name="pret_vanzare" class="form-control" min="0" step="0.01"
+                           value="{{ produs.pret_vanzare if produs else '0' }}">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Stoc minim</label>
+                    <input type="number" name="stoc_minim" class="form-control" min="0" step="0.001"
+                           value="{{ produs.stoc_minim if produs else '0' }}">
+                </div>
+            </div>
+            <div class="mt-4 d-flex gap-2">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-lg me-1"></i>Salveaza
+                </button>
+                <a href="/produse/" class="btn btn-outline-secondary">Anuleaza</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

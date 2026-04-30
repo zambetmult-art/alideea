@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - ALIDEEA{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h4><i class="bi bi-speedometer2 me-2 text-primary"></i>Dashboard</h4>
+    <span class="text-muted">Vedere generala a activitatii</span>
+</div>
+
+<!-- Stat Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="stat-card" style="background: linear-gradient(135deg, #0d6efd, #0a58ca)">
+            <i class="bi bi-box-seam stat-icon"></i>
+            <div class="stat-value">{{ total_produse }}</div>
+            <div class="stat-label">Produse active</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card" style="background: linear-gradient(135deg, #198754, #146c43)">
+            <i class="bi bi-geo-alt stat-icon"></i>
+            <div class="stat-value">{{ total_locatii }}</div>
+            <div class="stat-label">Locatii active</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card" style="background: linear-gradient(135deg, #fd7e14, #c96209)">
+            <i class="bi bi-currency-euro stat-icon"></i>
+            <div class="stat-value">{{ "%.0f"|format(vanzari_recente) }} Lei</div>
+            <div class="stat-label">Vanzari (7 zile)</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card" style="background: linear-gradient(135deg, #6f42c1, #59359a)">
+            <i class="bi bi-arrow-down-circle stat-icon"></i>
+            <div class="stat-value">{{ intrari_recente }}</div>
+            <div class="stat-label">Intrari (7 zile)</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <!-- Grafic vanzari saptamanale -->
+    <div class="col-12 col-md-8">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-graph-up me-2 text-primary"></i>Vanzari saptamanale</span>
+            </div>
+            <div class="card-body">
+                <canvas id="chartVanzari" height="120"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Vanzari pe locatii -->
+    <div class="col-12 col-md-4">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-pie-chart me-2 text-success"></i>Vanzari pe locatii</span>
+                <select class="form-select form-select-sm w-auto" onchange="window.location.href='/dashboard?zile='+this.value">
+                    <option value="7" {% if zile_selectate==7 %}selected{% endif %}>7 zile</option>
+                    <option value="14" {% if zile_selectate==14 %}selected{% endif %}>14 zile</option>
+                    <option value="30" {% if zile_selectate==30 %}selected{% endif %}>30 zile</option>
+                    <option value="60" {% if zile_selectate==60 %}selected{% endif %}>60 zile</option>
+                    <option value="90" {% if zile_selectate==90 %}selected{% endif %}>90 zile</option>
+                </select>
+            </div>
+            <div class="card-body">
+                <canvas id="chartLocatii" height="180"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <!-- Top produse -->
+    <div class="col-12 col-md-7">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-trophy me-2 text-warning"></i>Top produse vandute</div>
+            <div class="card-body p-0">
+                <table class="table mb-0">
+                    <thead>
+                        <tr>
+                            <th class="ps-3">#</th>
+                            <th>Produs</th>
+                            <th class="text-end">Cantitate</th>
+                            <th class="text-end pe-3">Valoare</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for p in top_produse %}
+                        <tr>
+                            <td class="ps-3 text-muted">{{ loop.index }}</td>
+                            <td>{{ p.denumire }}</td>
+                            <td class="text-end">{{ "%.2f"|format(p.total_cant) }}</td>
+                            <td class="text-end pe-3 fw-semibold">{{ "%.2f"|format(p.total_val) }} Lei</td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="4" class="text-center text-muted py-3">Nu exista date de vanzari</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alerte stoc -->
+    <div class="col-12 col-md-5">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-exclamation-triangle me-2 text-danger"></i>Alerte stoc minim</div>
+            <div class="card-body">
+                {% if alerte_stoc %}
+                {% for a in alerte_stoc %}
+                <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                    <span class="fw-semibold">{{ a.denumire }}</span>
+                    <div class="text-end">
+                        <span class="stoc-zero">{{ "%.2f"|format(a.stoc_central) }}</span>
+                        <small class="text-muted d-block">minim: {{ "%.2f"|format(a.stoc_minim) }}</small>
+                    </div>
+                </div>
+                {% endfor %}
+                {% else %}
+                <div class="text-center text-muted py-3">
+                    <i class="bi bi-check-circle text-success" style="font-size:32px"></i>
+                    <p class="mt-2 mb-0">Stocurile sunt la nivel normal</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const ctxVanzari = document.getElementById('chartVanzari').getContext('2d');
+new Chart(ctxVanzari, {
+    type: 'bar',
+    data: {
+        labels: [{% for v in vanzari_chart %}'{{ v.saptamana or v.data_raportare[:10] }}'{% if not loop.last %},{% endif %}{% endfor %}],
+        datasets: [{
+            label: 'Vanzari (Lei fara TVA)',
+            data: [{% for v in vanzari_chart %}{{ v.total }}{% if not loop.last %},{% endif %}{% endfor %}],
+            backgroundColor: 'rgba(13, 110, 253, 0.7)',
+            borderColor: '#0d6efd',
+            borderWidth: 2,
+            borderRadius: 6
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+            y: { beginAtZero: true, ticks: { callback: v => v.toLocaleString('ro-RO') + ' Lei' } }
+        }
+    }
+});
+
+const ctxLocatii = document.getElementById('chartLocatii').getContext('2d');
+new Chart(ctxLocatii, {
+    type: 'doughnut',
+    data: {
+        labels: [{% for l in vanzari_locatii %}'{{ l.nume }}'{% if not loop.last %},{% endif %}{% endfor %}],
+        datasets: [{
+            data: [{% for l in vanzari_locatii %}{{ l.total }}{% if not loop.last %},{% endif %}{% endfor %}],
+            backgroundColor: ['#0d6efd','#198754','#fd7e14','#6f42c1','#dc3545','#20c997','#ffc107'],
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } } }
+    }
+});
+</script>
+{% endblock %}

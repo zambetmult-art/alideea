@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}Stoc Curent{% endblock %}
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-start">
+    <div>
+        <h4><i class="bi bi-list-check me-2 text-primary"></i>{{ titlu }}</h4>
+        <span class="text-muted">Stoc calculat in timp real</span>
+    </div>
+</div>
+
+<!-- Selector locatie -->
+<div class="card mb-3">
+    <div class="card-body py-2">
+        <div class="d-flex gap-2 align-items-center flex-wrap">
+            <a href="/stoc/?locatie_id=central"
+               class="btn btn-sm {{ 'btn-primary' if locatie_id == 'central' else 'btn-outline-secondary' }}">
+                <i class="bi bi-house me-1"></i>Stoc Central
+            </a>
+            {% for l in locatii %}
+            <a href="/stoc/?locatie_id={{ l.id }}"
+               class="btn btn-sm {{ 'btn-primary' if locatie_id == l.id|string else 'btn-outline-secondary' }}">
+                <i class="bi bi-geo-alt me-1"></i>{{ l.nume }}
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Filtre -->
+<div class="card mb-3">
+    <div class="card-body py-2">
+        <input type="text" id="searchStoc" class="form-control form-control-sm" placeholder="Cauta produs..." style="max-width:300px">
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body p-0" style="overflow-x: auto;">
+        <table class="table table-hover mb-0" style="min-width: 500px;">
+            <thead><tr>
+                <th class="ps-3">Cod</th><th>Produs</th><th>Categorie</th>
+                <th class="text-center">UM</th><th class="text-end pe-3">Stoc curent</th>
+            </tr></thead>
+            <tbody id="tabelStoc">
+            {% for s in stoc %}
+            <tr class="stoc-row" data-denumire="{{ s.denumire|lower }}">
+                <td class="ps-3 text-muted small">{{ s.cod_articol or '-' }}</td>
+                <td class="fw-semibold">{{ s.denumire }}</td>
+                <td><span class="badge bg-light text-dark">{{ s.categorie_nume or '-' }}</span></td>
+                <td class="text-center"><span class="badge-um">{{ s.unitate_masura }}</span></td>
+                <td class="text-end pe-3">
+                    {% if s.stoc_curent <= 0 %}
+                    <span class="stoc-zero">{{ "%.3f"|format(s.stoc_curent) }}</span>
+                    {% elif s.stoc_minim > 0 and s.stoc_curent <= s.stoc_minim %}
+                    <span class="stoc-low">{{ "%.3f"|format(s.stoc_curent) }}</span>
+                    {% else %}
+                    <span class="stoc-ok">{{ "%.3f"|format(s.stoc_curent) }}</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5" class="text-center py-4 text-muted">Nu exista date de stoc.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Legenda -->
+<div class="mt-2 d-flex gap-3 small text-muted">
+    <span><span class="stoc-ok">●</span> Stoc normal</span>
+    <span><span class="stoc-low">●</span> Sub stoc minim</span>
+    <span><span class="stoc-zero">●</span> Stoc epuizat</span>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+document.getElementById('searchStoc').addEventListener('input', function() {
+    const q = this.value.toLowerCase();
+    document.querySelectorAll('.stoc-row').forEach(row => {
+        row.style.display = row.dataset.denumire.includes(q) ? '' : 'none';
+    });
+});
+</script>
+{% endblock %}

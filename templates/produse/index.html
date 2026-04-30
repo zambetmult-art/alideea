@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+{% block title %}Produse{% endblock %}
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-start">
+    <div>
+        <h4><i class="bi bi-box-seam me-2 text-primary"></i>Produse</h4>
+        <span class="text-muted">Catalog produse</span>
+    </div>
+    {% if current_user.is_admin() %}
+    <div class="d-flex gap-2">
+        <a href="/produse/import" class="btn btn-outline-success btn-sm">
+            <i class="bi bi-file-earmark-excel me-1"></i>Import Excel
+        </a>
+        <a href="/produse/adauga" class="btn btn-primary btn-sm">
+            <i class="bi bi-plus-lg me-1"></i>Produs nou
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Filtre -->
+<div class="card mb-3">
+    <div class="card-body py-2">
+        <div class="row g-2 align-items-center">
+            <div class="col-md-4">
+                <input type="text" id="searchProdus" class="form-control form-control-sm" placeholder="Cauta produs...">
+            </div>
+            <div class="col-md-3">
+                <select id="filterCategorie" class="form-select form-select-sm">
+                    <option value="">Toate categoriile</option>
+                    {% for c in categorii %}
+                    <option value="{{ c.nume }}">{{ c.nume }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select id="filterUM" class="form-select form-select-sm">
+                    <option value="">Toate UM</option>
+                    <option value="kg">Kilogram</option>
+                </select>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if current_user.is_admin() %}
+<form method="POST" action="/produse/sterge-multiple" id="formStergere">
+{% endif %}
+
+<!-- Bara actiuni selectie (ascunsa initial) -->
+{% if current_user.is_admin() %}
+<div id="baraSelectie" class="d-none mb-2">
+    <div class="alert alert-warning py-2 d-flex align-items-center gap-3 mb-0">
+        <span><strong id="nrSelectate">0</strong> produs(e) selectate</span>
+        <button type="submit" class="btn btn-danger btn-sm"
+                onclick="return confirm('Stergi produsele selectate?')">
+            <i class="bi bi-trash me-1"></i>Sterge selectate
+        </button>
+        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="deselecteazaTot()">
+            Anuleaza selectia
+        </button>
+    </div>
+</div>
+{% endif %}
+
+<div class="d-flex justify-content-between align-items-center mb-2 px-1">
+    <span class="text-muted small">
+        Total: <strong id="totalVizibile">{{ produse|length }}</strong> produse
+        {% if produse|length != produse|length %} din {{ produse|length }}{% endif %}
+    </span>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0" id="tabelProduse">
+            <thead>
+                <tr>
+                    {% if current_user.is_admin() %}
+                    <th class="ps-3" style="width:40px">
+                        <input type="checkbox" class="form-check-input" id="selectAll" title="Selecteaza tot">
+                    </th>
+                    {% endif %}
+                    <th class="text-center text-muted" style="width:45px">#</th>
+                    <th class="{{ 'ps-3' if not current_user.is_admin() }}">Cod</th>
+                    <th>Denumire</th>
+                    <th>Categorie</th>
+                    <th class="text-center">UM</th>
+                    <th class="text-end">Pret achizitie</th>
+                    <th class="text-end">Pret vanzare</th>
+                    {% if current_user.is_admin() %}
+                    <th class="text-center pe-3">Actiuni</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in produse %}
+                <tr class="produs-row"
+                    data-denumire="{{ p.denumire|lower }}"
+                    data-categorie="{{ p.categorie_nume or '' }}"
+                    data-um="{{ p.unitate_masura }}">
+                    {% if current_user.is_admin() %}
+                    <td class="ps-3">
+                        <input type="checkbox" class="form-check-input produs-check"
+                               name="produse_selectate" value="{{ p.id }}">
+                    </td>
+                    {% endif %}
+                    <td class="text-center text-muted small nr-curent">{{ loop.index }}</td>
+                    <td class="{{ 'ps-3' if not current_user.is_admin() }} text-muted small">{{ p.cod_articol or '-' }}</td>
+                    <td class="fw-semibold">{{ p.denumire }}</td>
+                    <td>
+                        {% if p.categorie_nume %}
+                        <span class="badge bg-light text-dark">{{ p.categorie_nume }}</span>
+                        {% else %}-{% endif %}
+                    </td>
+                    <td class="text-center">
+                        <span class="badge-um">{{ p.unitate_masura }}</span>
+                    </td>
+                    <td class="text-end">{{ "%.2f"|format(p.pret_achizitie) }} Lei</td>
+                    <td class="text-end">{{ "%.2f"|format(p.pret_vanzare) }} Lei</td>
+                    {% if current_user.is_admin() %}
+                    <td class="text-center pe-3">
+                        <a href="/produse/editeaza/{{ p.id }}" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                        <button type="button" class="btn btn-sm btn-outline-danger"
+                                onclick="stergeUnul({{ p.id }}, '{{ p.denumire|e }}')">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </td>
+                    {% endif %}
+                </tr>
+                {% else %}
+                <tr><td colspan="8" class="text-center py-4 text-muted">Nu exista produse. Adauga primul produs sau importa din Excel.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% if current_user.is_admin() %}
+</form>
+
+<!-- Form ascuns pentru stergere individuala -->
+<form method="POST" id="formStergeUnul" style="display:none">
+    <input type="hidden" name="produse_selectate" id="stergeUnulId">
+</form>
+{% endif %}
+
+{% endblock %}
+{% block scripts %}
+<script>
+['searchProdus','filterCategorie','filterUM'].forEach(id => {
+    document.getElementById(id).addEventListener('input', filterTable);
+});
+function filterTable() {
+    const search = document.getElementById('searchProdus').value.toLowerCase();
+    const cat = document.getElementById('filterCategorie').value;
+    const um = document.getElementById('filterUM').value;
+    let nr = 1;
+    document.querySelectorAll('.produs-row').forEach(row => {
+        const show = row.dataset.denumire.includes(search) &&
+            (!cat || row.dataset.categorie === cat) &&
+            (!um || row.dataset.um === um);
+        row.style.display = show ? '' : 'none';
+        if (show) {
+            row.querySelector('.nr-curent').textContent = nr++;
+        }
+    });
+    document.getElementById('totalVizibile').textContent = nr - 1;
+}
+
+{% if current_user.is_admin() %}
+// Selectare tot
+document.getElementById('selectAll').addEventListener('change', function() {
+    document.querySelectorAll('.produs-check').forEach(cb => {
+        if (cb.closest('tr').style.display !== 'none') cb.checked = this.checked;
+    });
+    updateBaraSelectie();
+});
+
+// Update bara la fiecare schimbare
+document.querySelectorAll('.produs-check').forEach(cb => {
+    cb.addEventListener('change', updateBaraSelectie);
+});
+
+function updateBaraSelectie() {
+    const selectate = document.querySelectorAll('.produs-check:checked').length;
+    const bara = document.getElementById('baraSelectie');
+    document.getElementById('nrSelectate').textContent = selectate;
+    bara.classList.toggle('d-none', selectate === 0);
+}
+
+function deselecteazaTot() {
+    document.querySelectorAll('.produs-check').forEach(cb => cb.checked = false);
+    document.getElementById('selectAll').checked = false;
+    updateBaraSelectie();
+}
+
+function stergeUnul(id, denumire) {
+    if (!confirm(`Dezactivezi produsul "${denumire}"?`)) return;
+    const form = document.getElementById('formStergeUnul');
+    form.action = `/produse/sterge-multiple`;
+    document.getElementById('stergeUnulId').value = id;
+    form.submit();
+}
+{% endif %}
+</script>
+{% endblock %}

@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}Adauga {{ titlu }}{% endblock %}
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-start">
+    <h4><i class="bi {{ 'bi-droplet-half' if tip == 'sampling' else 'bi-dash-circle' }} me-2 text-primary"></i>
+        Adauga {{ titlu }}
+    </h4>
+    <a href="/pierderi/{{ 'sampling' if tip == 'sampling' else 'resturi' }}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left me-1"></i>Inapoi
+    </a>
+</div>
+
+<div class="card" style="max-width:520px">
+    <div class="card-body">
+        <form method="POST">
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Data <span class="text-danger">*</span></label>
+                <input type="date" name="data" class="form-control" id="inputData" required>
+            </div>
+            {% if current_user.is_manager() %}
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Locatie <span class="text-danger">*</span></label>
+                <select name="locatie_id" class="form-select" required>
+                    <option value="">— Selecteaza —</option>
+                    {% for l in locatii %}
+                    <option value="{{ l.id }}">{{ l.nume }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Produs <span class="text-danger">*</span></label>
+                <select name="produs_id" class="form-select" id="selectProdus" required>
+                    <option value="">— Selecteaza —</option>
+                    {% for p in produse %}
+                    <option value="{{ p.id }}" data-pret="{{ p.pret_vanzare or 0 }}" data-um="{{ p.unitate_masura }}">
+                        {{ p.denumire }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Cantitate (kg) <span class="text-danger">*</span></label>
+                <input type="number" name="cantitate" class="form-control" id="inputCantitate"
+                       step="0.001" min="0.001" required>
+            </div>
+            <div class="mb-3 p-3 bg-light rounded" id="sumarValoare" style="display:none">
+                <div class="d-flex justify-content-between">
+                    <span class="text-muted">Pret unitar:</span>
+                    <span id="pretAfisat" class="fw-semibold">—</span>
+                </div>
+                <div class="d-flex justify-content-between mt-1">
+                    <span class="text-muted">Valoare estimata:</span>
+                    <span id="valoareAfisat" class="fw-bold text-danger">—</span>
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Observatii</label>
+                <input type="text" name="observatii" class="form-control"
+                       placeholder="ex: proba client, produs deteriorat">
+            </div>
+            <button type="submit" class="btn btn-primary w-100">
+                <i class="bi bi-check-lg me-1"></i>Salveaza {{ titlu }}
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+document.getElementById('inputData').valueAsDate = new Date();
+
+const sel = document.getElementById('selectProdus');
+const cant = document.getElementById('inputCantitate');
+const sumar = document.getElementById('sumarValoare');
+
+function updateValoare() {
+    const opt = sel.options[sel.selectedIndex];
+    const pret = parseFloat(opt?.dataset?.pret || 0);
+    const q = parseFloat(cant.value || 0);
+    if (pret > 0 && q > 0) {
+        document.getElementById('pretAfisat').textContent = pret.toFixed(2) + ' lei/kg';
+        document.getElementById('valoareAfisat').textContent = (pret * q).toFixed(2) + ' lei';
+        sumar.style.display = '';
+    } else {
+        sumar.style.display = 'none';
+    }
+}
+sel.addEventListener('change', updateValoare);
+cant.addEventListener('input', updateValoare);
+</script>
+{% endblock %}

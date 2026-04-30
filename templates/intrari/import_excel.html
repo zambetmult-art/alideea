@@ -1,0 +1,380 @@
+{% extends "base.html" %}
+{% block title %}Import Excel - Intrari{% endblock %}
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-start">
+    <div>
+        <h4><i class="bi bi-file-earmark-excel me-2 text-success"></i>Import Excel - Intrari</h4>
+        <span class="text-muted">Importa intrarile de stoc dintr-un fisier Excel</span>
+    </div>
+    <a href="/intrari/" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Inapoi</a>
+</div>
+
+<!-- Pasi -->
+<div class="d-flex align-items-center gap-2 mb-4">
+    <span class="badge {{ 'bg-primary' if pas >= 1 else 'bg-secondary' }} px-3 py-2">1. Incarcare fisier</span>
+    <i class="bi bi-chevron-right text-muted"></i>
+    <span class="badge {{ 'bg-primary' if pas >= 2 else 'bg-secondary' }} px-3 py-2">2. Preview & Confirmare</span>
+</div>
+
+{% if pas == 1 %}
+<!-- PAS 1: Upload -->
+<div class="card" style="max-width:500px">
+    <div class="card-header"><i class="bi bi-upload me-2"></i>Incarca fisierul Excel</div>
+    <div class="card-body">
+        <form method="POST" enctype="multipart/form-data">
+            <input type="hidden" name="pas" value="1">
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Fisiere Excel (.xlsx sau .xls)</label>
+                <input type="file" name="fisiere" class="form-control" accept=".xlsx,.xls" required multiple>
+                <div class="form-text">Poti selecta mai multe fisiere odata (Ctrl+Click sau Shift+Click). Accepta format INTRARI sau format Inventar.</div>
+            </div>
+            <button type="submit" class="btn btn-success w-100 py-2">
+                <i class="bi bi-upload me-2"></i>Incarca si vezi preview
+            </button>
+        </form>
+    </div>
+</div>
+
+{% elif pas == 2 and format_type == 'intrari' %}
+<!-- PAS 2: FORMAT INTRARI (rand per livrare) -->
+<form method="POST" id="formImport">
+    <input type="hidden" name="pas" value="2">
+    <input type="hidden" name="format_type" value="intrari">
+    <input type="hidden" name="grupuri_json" id="grupuriJson">
+
+    <!-- Furnizor si Nr document -->
+    <div class="card mb-3">
+        <div class="card-header"><i class="bi bi-info-circle me-2"></i>Detalii suplimentare (optionale)</div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-5">
+                    <label class="form-label fw-semibold">Furnizor</label>
+                    <select name="furnizor_id" class="form-select">
+                        <option value="">-- Fara furnizor --</option>
+                        {% for f in furnizori %}
+                        <option value="{{ f.id }}">{{ f.nume }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Nr. document</label>
+                    <input type="text" name="nr_document" class="form-control" placeholder="ex: FAC-001">
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <div class="alert alert-info py-2 mb-0 w-100 text-center small">
+                        <strong>{{ grupuri|length }}</strong> grupuri<br>
+                        <strong>{{ grupuri|selectattr('locatie_gasita')|list|length }}</strong> locatii gasite
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabel grupuri -->
+    <div class="card mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span><i class="bi bi-list-check me-2 text-primary"></i>Grupuri detectate
+                {% if fisiere_nr is defined and fisiere_nr > 1 %}
+                    ({{ fisiere_nr }} fisiere)
+                {% else %}
+                    ({{ fisier_nume }})
+                {% endif %}
+            </span>
+            <div>
+                <button type="button" class="btn btn-sm btn-outline-success" onclick="selecteazaTot(true)">
+                    <i class="bi bi-check-all me-1"></i>Selecteaza tot
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-secondary ms-1" onclick="selecteazaTot(false)">
+                    <i class="bi bi-x me-1"></i>Deselecteaza
+                </button>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <table class="table table-hover mb-0">
+                <thead><tr>
+                    <th class="ps-3" style="width:40px"></th>
+                    <th>Locatie</th>
+                    <th>Data</th>
+                    {% if fisiere_nr is defined and fisiere_nr > 1 %}<th>Fisier</th>{% endif %}
+                    <th class="text-center">Recunoscute</th>
+                    <th class="text-center">Nerecunoscute</th>
+                    <th class="text-end pe-3">Total cant.</th>
+                </tr></thead>
+                <tbody>
+                {% for g in grupuri %}
+                <tr class="{{ '' if g.locatie_gasita else 'table-danger' }}" style="cursor:pointer"
+                    onclick="toggleDetalii({{ loop.index0 }}, event)">
+                    <td class="ps-3">
+                        {% if g.locatie_gasita %}
+                        <input type="checkbox" class="grup-check" data-idx="{{ loop.index0 }}" checked>
+                        {% else %}
+                        <i class="bi bi-exclamation-triangle text-danger" title="Locatie negasita"></i>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="fw-semibold">
+                            {% if g.locatie_gasita %}
+                            <i class="bi bi-geo-alt text-success me-1"></i>{{ g.locatie_db }}
+                            {% else %}
+                            <i class="bi bi-geo-alt text-danger me-1"></i>{{ g.locatie_excel }}
+                            <small class="text-danger">(negasita)</small>
+                            {% endif %}
+                        </span>
+                    </td>
+                    <td>{{ g.data }}</td>
+                    {% if fisiere_nr is defined and fisiere_nr > 1 %}
+                    <td class="text-muted small">{{ g.fisier_sursa }}</td>
+                    {% endif %}
+                    <td class="text-center">
+                        <span class="badge bg-success">{{ g.produse|length }}</span>
+                    </td>
+                    <td class="text-center">
+                        {% if g.nerecunoscute %}
+                        <span class="badge bg-warning text-dark">{{ g.nerecunoscute|length }}</span>
+                        {% else %}
+                        <span class="badge bg-light text-muted">0</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end pe-3 fw-bold">
+                        {{ "%.3f"|format(g.produse|sum(attribute='cantitate')) }}
+                    </td>
+                </tr>
+                <tr id="detalii-{{ loop.index0 }}" class="bg-light" style="display:none">
+                    <td colspan="6" class="p-0">
+                        <table class="table table-sm mb-0">
+                            <tbody>
+                            {% for p in g.produse %}
+                            <tr>
+                                <td class="ps-5" style="width:40%">{{ p.denumire }}</td>
+                                <td class="text-muted small fst-italic" style="width:30%">{{ p.denumire_excel }}</td>
+                                <td class="text-center text-muted small">{{ p.um }}</td>
+                                <td class="text-end pe-3 fw-semibold">{{ "%.3f"|format(p.cantitate) }}</td>
+                                <td class="text-end pe-3 text-muted small">{{ "%.4f"|format(p.pret_unitar) }} lei</td>
+                            </tr>
+                            {% endfor %}
+                            {% for p in g.nerecunoscute %}
+                            <tr class="table-warning">
+                                <td class="ps-5 text-warning" colspan="2">
+                                    <i class="bi bi-exclamation-triangle me-1"></i>
+                                    {{ p.denumire_excel }}{% if p.cod %} <small class="text-muted">(cod: {{ p.cod }})</small>{% endif %}
+                                    <small>(nerecunoscut)</small>
+                                </td>
+                                <td></td>
+                                <td class="text-end pe-3 text-warning">{{ "%.3f"|format(p.cantitate) }}</td>
+                                <td></td>
+                            </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {% set negasite = grupuri|rejectattr('locatie_gasita')|list %}
+    {% if negasite %}
+    <div class="alert alert-warning">
+        <i class="bi bi-exclamation-triangle me-2"></i>
+        <strong>{{ negasite|length }} locatii negasite</strong> — aceste grupuri nu vor fi importate.
+        Verifica sectiunea Locatii si reincearca.
+    </div>
+    {% endif %}
+
+    <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-success px-4 py-2">
+            <i class="bi bi-check-lg me-2"></i>Importa grupurile selectate
+        </button>
+        <a href="/intrari/import-excel" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Incepe din nou
+        </a>
+    </div>
+</form>
+
+{% elif pas == 2 and format_type == 'inventar' %}
+<!-- PAS 2: FORMAT INVENTAR (matrice) -->
+<form method="POST" id="formImport">
+    <input type="hidden" name="pas" value="2">
+    <input type="hidden" name="format_type" value="inventar">
+    <input type="hidden" name="locatii_json" id="locatiiJson">
+
+    <div class="card mb-3">
+        <div class="card-header"><i class="bi bi-info-circle me-2"></i>Detalii intrare (valabile pentru toate locatiile)</div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">Data <span class="text-danger">*</span></label>
+                    <input type="date" name="data" id="dataIntrare" class="form-control" required
+                           value="{{ azi_ro.strftime('%Y-%m-%d') if azi_ro else '' }}">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Furnizor</label>
+                    <select name="furnizor_id" class="form-select">
+                        <option value="">-- Fara furnizor --</option>
+                        {% for f in furnizori %}
+                        <option value="{{ f.id }}">{{ f.nume }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">Nr. document</label>
+                    <input type="text" name="nr_document" class="form-control" placeholder="ex: FAC-001">
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <div class="alert alert-info py-2 mb-0 w-100 text-center small">
+                        <strong>{{ locatii|length }}</strong> locatii
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span><i class="bi bi-shop me-2 text-primary"></i>Locatii detectate
+                {% if fisiere_nr is defined and fisiere_nr > 1 %}({{ fisiere_nr }} fisiere){% else %}in fisier{% endif %}
+            </span>
+            <div>
+                <button type="button" class="btn btn-sm btn-outline-success" onclick="selecteazaTot(true)">
+                    <i class="bi bi-check-all me-1"></i>Selecteaza tot
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-secondary ms-1" onclick="selecteazaTot(false)">
+                    <i class="bi bi-x me-1"></i>Deselecteaza
+                </button>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <table class="table table-hover mb-0">
+                <thead><tr>
+                    <th class="ps-3" style="width:40px"></th>
+                    <th>Locatie (din Excel)</th>
+                    {% if fisiere_nr is defined and fisiere_nr > 1 %}<th>Fisier</th>{% endif %}
+                    <th class="text-center">Produse recunoscute</th>
+                    <th class="text-center">Nerecunoscute</th>
+                    <th class="text-end pe-3">Total cantitate</th>
+                </tr></thead>
+                <tbody>
+                {% for loc in locatii %}
+                <tr style="cursor:pointer" onclick="toggleDetalii({{ loop.index0 }}, event)">
+                    <td class="ps-3">
+                        <input type="checkbox" class="loc-check" data-loc-idx="{{ loop.index0 }}" checked>
+                    </td>
+                    <td class="fw-semibold"><i class="bi bi-geo-alt text-primary me-1"></i>{{ loc.nume }}</td>
+                    {% if fisiere_nr is defined and fisiere_nr > 1 %}
+                    <td class="text-muted small">{{ loc.fisier_sursa }}</td>
+                    {% endif %}
+                    <td class="text-center"><span class="badge bg-success">{{ loc.produse|length }}</span></td>
+                    <td class="text-center">
+                        {% if loc.nerecunoscute %}
+                        <span class="badge bg-warning text-dark">{{ loc.nerecunoscute|length }}</span>
+                        {% else %}
+                        <span class="badge bg-light text-muted">0</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end pe-3 fw-bold">
+                        {{ "%.3f"|format(loc.produse|sum(attribute='cantitate')) }} kg
+                    </td>
+                </tr>
+                <tr class="bg-light" id="detalii-{{ loop.index0 }}" style="display:none">
+                    <td colspan="5" class="p-0">
+                        <table class="table table-sm mb-0">
+                            <tbody>
+                            {% for p in loc.produse %}
+                            <tr>
+                                <td class="ps-5 text-muted" style="width:50%">{{ p.denumire }}</td>
+                                <td class="text-muted small fst-italic" style="width:35%">{{ p.denumire_excel }}</td>
+                                <td class="text-end pe-4 fw-semibold">{{ "%.3f"|format(p.cantitate) }} kg</td>
+                            </tr>
+                            {% endfor %}
+                            {% for p in loc.nerecunoscute %}
+                            <tr class="table-warning">
+                                <td class="ps-5 text-warning" colspan="2"><i class="bi bi-exclamation-triangle me-1"></i>{{ p.denumire_excel }} <small>(nerecunoscut)</small></td>
+                                <td class="text-end pe-4 text-warning">{{ "%.3f"|format(p.cantitate) }} kg</td>
+                            </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-success px-4 py-2">
+            <i class="bi bi-check-lg me-2"></i>Importa toate locatiile selectate
+        </button>
+        <a href="/intrari/import-excel" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Incepe din nou
+        </a>
+    </div>
+</form>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if pas == 2 %}
+<script>
+{% if format_type == 'intrari' %}
+const grupuriData = {{ grupuri | tojson }};
+
+function toggleDetalii(idx, e) {
+    if (e.target.type === 'checkbox') return;
+    const d = document.getElementById('detalii-' + idx);
+    if (d) d.style.display = d.style.display === 'none' ? '' : 'none';
+}
+
+function selecteazaTot(val) {
+    document.querySelectorAll('.grup-check').forEach(cb => cb.checked = val);
+}
+
+document.getElementById('formImport').addEventListener('submit', function(e) {
+    const checked = document.querySelectorAll('.grup-check:checked');
+    if (checked.length === 0) {
+        e.preventDefault();
+        alert('Selecteaza cel putin un grup!');
+        return;
+    }
+    const lista = [];
+    checked.forEach(cb => {
+        const idx = parseInt(cb.dataset.idx);
+        lista.push(grupuriData[idx]);
+    });
+    document.getElementById('grupuriJson').value = JSON.stringify(lista);
+});
+
+{% else %}
+const locatiiData = {{ locatii | tojson }};
+
+function toggleDetalii(idx, e) {
+    if (e.target.type === 'checkbox') return;
+    const d = document.getElementById('detalii-' + idx);
+    if (d) d.style.display = d.style.display === 'none' ? '' : 'none';
+}
+
+function selecteazaTot(val) {
+    document.querySelectorAll('.loc-check').forEach(cb => cb.checked = val);
+}
+
+document.getElementById('formImport').addEventListener('submit', function(e) {
+    const checked = document.querySelectorAll('.loc-check:checked');
+    if (checked.length === 0) {
+        e.preventDefault();
+        alert('Selecteaza cel putin o locatie!');
+        return;
+    }
+    const lista = [];
+    checked.forEach(cb => {
+        const idx = parseInt(cb.dataset.locIdx);
+        lista.push(locatiiData[idx]);
+    });
+    document.getElementById('locatiiJson').value = JSON.stringify(lista);
+});
+{% endif %}
+</script>
+{% endif %}
+{% endblock %}

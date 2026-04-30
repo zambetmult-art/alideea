@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}Import Rapoarte Carrefour{% endblock %}
+{% block content %}
+<div class="page-header"><h4><i class="bi bi-cloud-upload me-2 text-success"></i>Import Rapoarte Carrefour</h4></div>
+
+<!-- Import din Email -->
+<div class="alert alert-primary d-flex align-items-center justify-content-between mb-3 py-2">
+    <div>
+        <i class="bi bi-envelope me-2"></i>
+        <strong>Import din Gmail</strong> — trimite fisierele Excel la
+        <span class="fw-semibold">zambetmult@gmail.com</span> si apasa butonul sa le importi automat.
+    </div>
+    <form method="POST" action="/vanzari/import-email" class="ms-3 flex-shrink-0">
+        <button type="submit" class="btn btn-primary btn-sm">
+            <i class="bi bi-envelope-arrow-down me-1"></i>Importa din Email
+        </button>
+    </form>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-file-earmark-excel me-2"></i>Incarca fisiere Excel</div>
+            <div class="card-body">
+                <form method="POST" enctype="multipart/form-data" id="formImport">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Selecteaza fisierele Excel (poti selecta mai multe)</label>
+                        <input type="file" name="fisiere" class="form-control" accept=".xlsx,.xls"
+                               multiple required id="fisierInput">
+                        <div class="form-text">Poti selecta toate rapoartele deodata (cate un fisier per locatie)</div>
+                    </div>
+                    <div id="fisiereLista" class="mb-3 d-none">
+                        <strong class="small">Fisiere selectate:</strong>
+                        <ul id="listaFisiere" class="small text-muted mt-1 mb-0"></ul>
+                    </div>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-upload me-1"></i>Importa toate rapoartele
+                    </button>
+                    <a href="/vanzari/" class="btn btn-outline-secondary ms-2">Anuleaza</a>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card bg-light">
+            <div class="card-body">
+                <h6 class="fw-bold"><i class="bi bi-info-circle me-1 text-primary"></i>Cum functioneaza importul</h6>
+                <ol class="small text-muted mb-0">
+                    <li class="mb-2">Descarca rapoartele saptamanale de pe platforma Carrefour (cate unul per locatie)</li>
+                    <li class="mb-2">Selecteaza toate fisierele odata folosind butonul de mai sus</li>
+                    <li class="mb-2">Aplicatia citeste automat din fiecare fisier:
+                        <ul>
+                            <li>Sheet-ul <strong>Antet</strong>: locatia si data raportarii</li>
+                            <li>Sheet-ul cu date: produse, cantitati, preturi</li>
+                        </ul>
+                    </li>
+                    <li class="mb-2">Stocul se actualizeaza automat</li>
+                </ol>
+                <div class="alert alert-warning py-2 mt-3 mb-0 small">
+                    <i class="bi bi-exclamation-triangle me-1"></i>
+                    Locatiile din fisiere trebuie sa existe deja in aplicatie!
+                    <a href="/locatii/" class="alert-link">Gestioneaza locatii</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-body">
+                <h6 class="fw-bold"><i class="bi bi-geo-alt me-1 text-primary"></i>Locatii configurate</h6>
+                {% for l in locatii %}
+                <span class="badge bg-primary me-1 mb-1">{{ l.nume }}</span>
+                {% else %}
+                <span class="text-muted small">Nu exista locatii. <a href="/locatii/adauga">Adauga prima locatie</a></span>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+document.getElementById('fisierInput').addEventListener('change', function() {
+    const lista = document.getElementById('listaFisiere');
+    const container = document.getElementById('fisiereLista');
+    lista.innerHTML = '';
+    if (this.files.length > 0) {
+        container.classList.remove('d-none');
+        Array.from(this.files).forEach(f => {
+            const li = document.createElement('li');
+            li.textContent = f.name;
+            lista.appendChild(li);
+        });
+    } else {
+        container.classList.add('d-none');
+    }
+});
+</script>
+{% endblock %}

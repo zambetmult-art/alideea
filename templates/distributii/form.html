@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Aviz distributie nou{% endblock %}
+{% block content %}
+<div class="page-header"><h4><i class="bi bi-arrow-up-circle me-2 text-primary"></i>Aviz distributie nou</h4></div>
+<form method="POST" id="formDist">
+    <input type="hidden" name="produse_json" id="produseJson">
+    <div class="row g-3">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">Informatii generale</div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label">Data <span class="text-danger">*</span></label>
+                            <input type="date" name="data" class="form-control" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Locatie destinatie <span class="text-danger">*</span></label>
+                            <select name="locatie_id" class="form-select" required>
+                                <option value="">-- Selecteaza locatie --</option>
+                                {% for l in locatii %}
+                                <option value="{{ l.id }}">{{ l.nume }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Nr. aviz</label>
+                            <input type="text" name="nr_aviz" class="form-control" placeholder="ex: AV-2024-001">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Observatii</label>
+                            <input type="text" name="observatii" class="form-control">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span>Produse</span>
+                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="addProductRow(document.getElementById('produsePicker'))">
+                        <i class="bi bi-plus-lg me-1"></i>Adauga produs
+                    </button>
+                </div>
+                <div class="card-body"><div id="produsePicker"></div></div>
+            </div>
+        </div>
+        <div class="col-12 d-flex gap-2">
+            <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Salveaza aviz</button>
+            <a href="/distributii/" class="btn btn-outline-secondary">Anuleaza</a>
+        </div>
+    </div>
+</form>
+{% endblock %}
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    addProductRow(document.getElementById('produsePicker'));
+    document.querySelector('input[name=data]').valueAsDate = new Date();
+    document.getElementById('formDist').addEventListener('submit', function(e) {
+        const produse = collectProducts('produsePicker');
+        if (!produse.length) { e.preventDefault(); alert('Adauga cel putin un produs!'); return; }
+        document.getElementById('produseJson').value = JSON.stringify(produse);
+    });
+});
+</script>
+{% endblock %}

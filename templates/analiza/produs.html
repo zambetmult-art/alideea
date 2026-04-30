@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% block title %}Analiza Per Produs{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h4><i class="bi bi-box-seam me-2 text-primary"></i>Analiza Per Produs</h4>
+    <span class="text-muted">Top produse vandute — filtrare dupa locatie, categorie, perioada</span>
+</div>
+
+<!-- Filtre -->
+<div class="card mb-3">
+    <div class="card-body py-2">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label small fw-semibold">Locatie</label>
+                <select id="filtLocatie" class="form-select form-select-sm">
+                    <option value="toate">Toate locatiile</option>
+                    {% for l in locatii %}
+                    <option value="{{ l.id }}">{{ l.nume }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small fw-semibold">Categorie</label>
+                <select id="filtCategorie" class="form-select form-select-sm">
+                    <option value="toate">Toate categoriile</option>
+                    {% for c in categorii %}
+                    <option value="{{ c.id }}">{{ c.nume }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small fw-semibold">De la</label>
+                <input type="date" id="filtStart" class="form-control form-control-sm">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small fw-semibold">Pana la</label>
+                <input type="date" id="filtEnd" class="form-control form-control-sm">
+            </div>
+            <div class="col-md-2">
+                <button onclick="incarcaDate()" class="btn btn-primary btn-sm w-100">
+                    <i class="bi bi-search me-1"></i>Afiseaza
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Grafic Top 10 -->
+<div class="card mb-3">
+    <div class="card-header">Top 10 produse dupa valoare</div>
+    <div class="card-body">
+        <canvas id="chartProduse" height="120"></canvas>
+    </div>
+</div>
+
+<!-- Tabel -->
+<div class="card">
+    <div class="card-header">Detaliu produse</div>
+    <div class="card-body p-0" style="overflow-x:auto">
+        <table class="table table-hover mb-0" id="tabelProduse">
+            <thead class="table-light">
+                <tr>
+                    <th class="ps-3">#</th>
+                    <th>Produs</th>
+                    <th>Categorie</th>
+                    <th class="text-end">Cantitate (kg)</th>
+                    <th class="text-end">Valoare (lei)</th>
+                </tr>
+            </thead>
+            <tbody id="bodyProduse">
+                <tr><td colspan="5" class="text-center py-3 text-muted">Selecteaza filtrele si apasa Afiseaza</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+let chartProduse = null;
+
+async function incarcaDate() {
+    const loc = document.getElementById('filtLocatie').value;
+    const cat = document.getElementById('filtCategorie').value;
+    const start = document.getElementById('filtStart').value;
+    const end = document.getElementById('filtEnd').value;
+    let url = `/analiza/api/top_produse?locatie_id=${loc}&categorie_id=${cat}`;
+    if (start) url += `&data_start=${start}`;
+    if (end) url += `&data_end=${end}`;
+    const data = await fetch(url).then(r => r.json());
+
+    // Tabel
+    const tbody = document.getElementById('bodyProduse');
+    if (!data.length) { tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-3">Niciun rezultat.</td></tr>'; return; }
+    tbody.innerHTML = data.map((r, i) => `
+        <tr>
+            <td class="ps-3 text-muted">${i+1}</td>
+            <td class="fw-semibold">${r.denumire}</td>
+            <td><span class="badge bg-light text-dark">${r.categorie || '—'}</span></td>
+            <td class="text-end">${r.total_cant.toFixed(3)}</td>
+            <td class="text-end fw-semibold">${r.total_val.toFixed(2)}</td>
+        </tr>`).join('');
+
+    // Grafic
+    const top10 = data.slice(0, 10);
+    if (chartProduse) chartProduse.destroy();
+    chartProduse = new Chart(document.getElementById('chartProduse'), {
+        type: 'bar',
+        data: {
+            labels: top10.map(r => r.denumire.length > 20 ? r.denumire.substring(0,20)+'...' : r.denumire),
+            datasets: [{
+                label: 'Valoare (lei)',
+                data: top10.map(r => r.total_val),
+                backgroundColor: 'rgba(13,110,253,0.7)'
+            }]
+        },
+        options: { responsive: true, plugins: { legend: { display: false } } }
+    });
+}
+incarcaDate();
+</script>
+{% endblock %}

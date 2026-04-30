@@ -1,0 +1,232 @@
+/* ===== SIDEBAR ===== */
+.sidebar {
+    width: 240px;
+    min-width: 240px;
+    flex-shrink: 0;
+    min-height: calc(100vh - 56px);
+    background: #1e2a3a;
+    position: sticky;
+    top: 56px;
+    height: calc(100vh - 56px);
+    overflow-y: auto;
+}
+
+.sidebar-section {
+    padding: 8px 0 4px 0;
+}
+
+.sidebar-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #6c8097;
+    padding: 8px 20px 4px 20px;
+    text-transform: uppercase;
+}
+
+.sidebar-link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 20px;
+    color: #b0bec5;
+    text-decoration: none;
+    font-size: 14px;
+    transition: all 0.15s;
+    border-left: 3px solid transparent;
+}
+
+.sidebar-link:hover {
+    background: #263548;
+    color: #fff;
+    border-left-color: #4a9eff;
+}
+
+.sidebar-link.active {
+    background: #1a6fc4;
+    color: #fff;
+    border-left-color: #fff;
+    font-weight: 600;
+}
+
+.sidebar-link i {
+    font-size: 16px;
+    width: 20px;
+    text-align: center;
+}
+
+/* ===== MAIN CONTENT ===== */
+.main-content {
+    background: #f5f7fa;
+    min-height: calc(100vh - 56px);
+    min-width: 0;
+    overflow-x: hidden;
+}
+
+/* ===== CARDS ===== */
+.card {
+    border: none;
+    border-radius: 10px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+}
+
+.card-header {
+    background: #fff;
+    border-bottom: 1px solid #e9ecef;
+    border-radius: 10px 10px 0 0 !important;
+    font-weight: 600;
+    padding: 14px 20px;
+}
+
+/* ===== STAT CARDS ===== */
+.stat-card {
+    border-radius: 10px;
+    padding: 20px;
+    color: white;
+    position: relative;
+    overflow: hidden;
+}
+
+.stat-card .stat-icon {
+    font-size: 48px;
+    opacity: 0.2;
+    position: absolute;
+    right: 16px;
+    top: 12px;
+}
+
+.stat-card .stat-value {
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.stat-card .stat-label {
+    font-size: 13px;
+    opacity: 0.85;
+    margin-top: 4px;
+}
+
+/* ===== TABLES ===== */
+.table th {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #6c757d;
+    border-bottom: 2px solid #e9ecef;
+}
+
+.table td {
+    font-size: 14px;
+    vertical-align: middle;
+}
+
+.table-hover tbody tr:hover {
+    background-color: #f0f4ff;
+    cursor: pointer;
+}
+
+/* ===== BADGES ===== */
+.badge-um {
+    background: #e3f2fd;
+    color: #1565c0;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+/* ===== PRODUCT PICKER ===== */
+.product-row {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    border: 1px solid #e9ecef;
+}
+
+.product-row:hover {
+    border-color: #0d6efd;
+}
+
+/* ===== STOC BADGES ===== */
+.stoc-ok { color: #198754; font-weight: 600; }
+.stoc-low { color: #fd7e14; font-weight: 600; }
+.stoc-zero { color: #dc3545; font-weight: 600; }
+
+/* ===== PAGE HEADER ===== */
+.page-header {
+    margin-bottom: 24px;
+}
+
+.page-header h4 {
+    font-weight: 700;
+    color: #1e2a3a;
+    margin-bottom: 2px;
+}
+
+.page-header .text-muted {
+    font-size: 13px;
+}
+
+/* ===== FORMS ===== */
+.form-label {
+    font-weight: 600;
+    font-size: 13px;
+    color: #495057;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.15rem rgba(13,110,253,.15);
+}
+
+/* ===== MOBILE ===== */
+@media (max-width: 768px) {
+    .sidebar {
+        width: 100%;
+        min-height: auto;
+        position: static;
+        height: auto;
+    }
+    .d-flex {
+        flex-direction: column;
+    }
+    .main-content {
+        padding: 16px !important;
+    }
+    .stat-card .stat-value {
+        font-size: 22px;
+    }
+}
+
+/* ===== AUTOCOMPLETE ===== */
+.autocomplete-list {
+    position: absolute;
+    z-index: 1000;
+    background: white;
+    border: 1px solid #dee2e6;
+    border-top: none;
+    border-radius: 0 0 6px 6px;
+    max-height: 200px;
+    overflow-y: auto;
+    width: 100%;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.autocomplete-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.autocomplete-item:hover {
+    background: #e9f0ff;
+}
+
+/* ===== PRINT ===== */
+@media print {
+    .sidebar, .navbar, .btn, .alert { display: none !important; }
+    .main-content { margin: 0; padding: 0; }
+}

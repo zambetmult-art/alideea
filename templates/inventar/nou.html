@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Inventar nou{% endblock %}
+{% block content %}
+<div class="page-header"><h4><i class="bi bi-clipboard-check me-2 text-primary"></i>Inventar nou</h4></div>
+<div class="card" style="max-width:500px">
+    <div class="card-body">
+        <form method="POST">
+            <div class="mb-3">
+                <label class="form-label">Data inventarului <span class="text-danger">*</span></label>
+                <input type="date" name="data" class="form-control" required>
+            </div>
+            {% if current_user.is_admin() %}
+            <div class="mb-3">
+                <label class="form-label">Locatie <span class="text-danger">*</span></label>
+                <select name="locatie_id" class="form-select" required>
+                    <option value="">-- Selecteaza locatie --</option>
+                    {% for l in locatii %}
+                    <option value="{{ l.id }}">{{ l.nume }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+            <div class="mb-3">
+                <label class="form-label">Observatii</label>
+                <input type="text" name="observatii" class="form-control">
+            </div>
+            <div class="alert alert-info py-2 small">
+                <i class="bi bi-info-circle me-1"></i>
+                Aplicatia va pre-popula lista cu toate produsele si stocul calculat din sistem. Tu completezi cantitatile fizice gasite.
+            </div>
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary"><i class="bi bi-arrow-right me-1"></i>Incepe inventarul</button>
+                <a href="/inventar/" class="btn btn-outline-secondary">Anuleaza</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>document.querySelector('input[name=data]').valueAsDate = new Date();</script>
+{% endblock %}

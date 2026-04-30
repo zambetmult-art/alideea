@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Furnizori{% endblock %}
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-start">
+    <div><h4><i class="bi bi-truck me-2 text-primary"></i>Furnizori</h4></div>
+    {% if current_user.is_admin() %}
+    <a href="/furnizori/adauga" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Furnizor nou</a>
+    {% endif %}
+</div>
+<div class="card">
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead><tr>
+                <th class="ps-3">Nume</th><th>Contact</th><th>Telefon</th><th>Email</th>
+                {% if current_user.is_admin() %}<th class="text-center pe-3">Actiuni</th>{% endif %}
+            </tr></thead>
+            <tbody>
+            {% for f in furnizori %}
+            <tr>
+                <td class="ps-3 fw-semibold">{{ f.nume }}</td>
+                <td>{{ f.contact or '-' }}</td>
+                <td>{{ f.telefon or '-' }}</td>
+                <td>{{ f.email or '-' }}</td>
+                {% if current_user.is_admin() %}
+                <td class="text-center pe-3">
+                    <a href="/furnizori/editeaza/{{ f.id }}" class="btn btn-sm btn-outline-primary"><i class="bi bi-pencil"></i></a>
+                    <form method="POST" action="/furnizori/sterge/{{ f.id }}" class="d-inline" onsubmit="return confirm('Stergi acest furnizor?')">
+                        <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                    </form>
+                </td>
+                {% endif %}
+            </tr>
+            {% else %}
+            <tr><td colspan="5" class="text-center py-4 text-muted">Nu exista furnizori adaugati.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

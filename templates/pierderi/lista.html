@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}{{ titlu }}{% endblock %}
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-start">
+    <div>
+        <h4><i class="bi {{ 'bi-droplet-half' if tip == 'sampling' else 'bi-dash-circle' }} me-2 text-primary"></i>{{ titlu }}</h4>
+        <span class="text-muted">Inregistrari {{ titlu|lower }} cu valoare calculata</span>
+    </div>
+    <a href="/pierderi/adauga/{{ tip }}" class="btn btn-primary btn-sm">
+        <i class="bi bi-plus-lg me-1"></i>Adauga {{ titlu }}
+    </a>
+</div>
+
+<!-- Sumar -->
+<div class="row mb-3">
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body py-3">
+                <div class="fs-4 fw-bold text-danger">{{ inregistrari|length }}</div>
+                <div class="text-muted small">Inregistrari</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body py-3">
+                <div class="fs-4 fw-bold text-warning">{{ "%.2f"|format(total_valoare) }} lei</div>
+                <div class="text-muted small">Valoare totala pierduta</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body p-0" style="overflow-x:auto;">
+        <table class="table table-hover mb-0" style="min-width:700px;">
+            <thead class="table-light">
+                <tr>
+                    <th class="ps-3">Data</th>
+                    <th>Locatie</th>
+                    <th>Produs</th>
+                    <th class="text-center">Cantitate</th>
+                    <th class="text-center">UM</th>
+                    <th class="text-end">Pret/kg</th>
+                    <th class="text-end">Valoare</th>
+                    <th>Observatii</th>
+                    {% if current_user.is_manager() %}<th></th>{% endif %}
+                </tr>
+            </thead>
+            <tbody>
+            {% for r in inregistrari %}
+            <tr>
+                <td class="ps-3">{{ r.data }}</td>
+                <td class="text-muted small">{{ r.locatie_nume or '—' }}</td>
+                <td class="fw-semibold">{{ r.produs_denumire }}</td>
+                <td class="text-center">{{ "%.3f"|format(r.cantitate) }}</td>
+                <td class="text-center"><span class="badge-um">{{ r.unitate_masura }}</span></td>
+                <td class="text-end text-muted">
+                    {% if r.pret_vanzare %}{{ "%.2f"|format(r.pret_vanzare) }}{% else %}—{% endif %}
+                </td>
+                <td class="text-end fw-semibold {{ 'text-danger' if r.valoare > 0 else 'text-muted' }}">
+                    {% if r.valoare > 0 %}{{ "%.2f"|format(r.valoare) }} lei{% else %}—{% endif %}
+                </td>
+                <td class="text-muted small">{{ r.observatii or '—' }}</td>
+                {% if current_user.is_manager() %}
+                <td>
+                    <form method="POST" action="/pierderi/sterge/{{ r.id }}"
+                          onsubmit="return confirm('Stergi inregistrarea?')">
+                        <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                    </form>
+                </td>
+                {% endif %}
+            </tr>
+            {% else %}
+            <tr><td colspan="9" class="text-center py-4 text-muted">
+                <i class="bi bi-inbox fs-2 d-block mb-2"></i>
+                Nicio inregistrare de {{ titlu|lower }}.
+            </td></tr>
+            {% endfor %}
+            </tbody>
+            {% if inregistrari %}
+            <tfoot class="table-light">
+                <tr>
+                    <td colspan="6" class="ps-3 fw-semibold">TOTAL</td>
+                    <td class="text-end fw-bold text-danger">{{ "%.2f"|format(total_valoare) }} lei</td>
+                    <td colspan="2"></td>
+                </tr>
+            </tfoot>
+            {% endif %}
+        </table>
+    </div>
+</div>
+{% endblock %}

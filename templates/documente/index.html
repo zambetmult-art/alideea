@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}Documente Angajati{% endblock %}
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-start">
+    <div>
+        <h4><i class="bi bi-person-badge me-2 text-primary"></i>Documente Angajati</h4>
+        <span class="text-muted">Urmarire analize, curs igiena si delegatii</span>
+    </div>
+    {% if current_user.is_manager() %}
+    <a href="/documente/angajat/adauga" class="btn btn-primary btn-sm">
+        <i class="bi bi-person-plus me-1"></i>Angajat nou
+    </a>
+    {% endif %}
+</div>
+
+{% if alerte > 0 %}
+<div class="alert alert-warning d-flex align-items-center gap-2 mb-3">
+    <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+    <strong>{{ alerte }} documente</strong>&nbsp;expirate, care expira curand sau lipsesc.
+</div>
+{% endif %}
+
+<div class="card">
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th class="ps-3">Angajat</th>
+                    <th>Locatie</th>
+                    <th class="text-center">
+                        <i class="bi bi-clipboard2-pulse me-1"></i>Analize
+                        <small class="text-muted d-block" style="font-weight:normal">val. 6 luni</small>
+                    </th>
+                    <th class="text-center">
+                        <i class="bi bi-mortarboard me-1"></i>Curs Igiena
+                        <small class="text-muted d-block" style="font-weight:normal">val. 3 ani</small>
+                    </th>
+                    <th class="text-center">
+                        <i class="bi bi-file-earmark-text me-1"></i>Delegatie
+                        <small class="text-muted d-block" style="font-weight:normal">lunara</small>
+                    </th>
+                    <th class="text-end pe-3">Actiuni</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for r in rezultate %}
+            {% set ang = r.ang %}
+            <tr>
+                <td class="ps-3 fw-semibold">
+                    <i class="bi bi-person me-1 text-muted"></i>{{ ang.nume }}
+                </td>
+                <td class="text-muted small">{{ ang.locatie_nume or '—' }}</td>
+
+                {% for tip in ['analize', 'curs_igiena', 'delegatie'] %}
+                {% set d = r.docs[tip] %}
+                <td class="text-center">
+                    <span class="badge {{ d.badge[0] }}">{{ d.badge[1] }}</span>
+                    {% if d.expirare %}
+                    <div class="text-muted" style="font-size:0.72rem">{{ d.expirare }}</div>
+                    {% endif %}
+                </td>
+                {% endfor %}
+
+                <td class="text-end pe-3">
+                    <a href="/documente/angajat/{{ ang.id }}" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-folder2-open me-1"></i>Documente
+                    </a>
+                    {% if current_user.is_manager() %}
+                    <a href="/documente/angajat/{{ ang.id }}/editeaza" class="btn btn-sm btn-outline-secondary ms-1">
+                        <i class="bi bi-pencil"></i>
+                    </a>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+            {% if not rezultate %}
+            <tr><td colspan="6" class="text-center text-muted py-4">
+                Niciun angajat adaugat. <a href="/documente/angajat/adauga">Adauga primul angajat</a>.
+            </td></tr>
+            {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Legenda -->
+<div class="d-flex gap-3 mt-3 flex-wrap">
+    <span class="text-muted small"><span class="badge bg-success">Valid</span> document in termen</span>
+    <span class="text-muted small"><span class="badge bg-warning text-dark">Expira curand</span> sub 30 zile</span>
+    <span class="text-muted small"><span class="badge bg-danger">Expirat</span> termenul a trecut</span>
+    <span class="text-muted small"><span class="badge bg-secondary">Lipsa</span> niciun document inregistrat</span>
+</div>
+{% endblock %}

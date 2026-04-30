@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Detalii Import Vanzari{% endblock %}
+{% block content %}
+<div class="page-header d-flex justify-content-between">
+    <h4><i class="bi bi-file-earmark-excel me-2 text-success"></i>Raport vanzari - {{ import_rec.locatie_nume }} - {{ import_rec.saptamana }}</h4>
+    <a href="/vanzari/" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Inapoi</a>
+</div>
+<div class="row g-3 mb-3">
+    <div class="col-md-3">
+        <div class="card text-center py-3">
+            <div class="fs-4 fw-bold text-primary">{{ detalii|length }}</div>
+            <div class="text-muted small">Produse</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center py-3">
+            <div class="fs-4 fw-bold text-success">{{ "%.2f"|format(total_valoare) }} Lei</div>
+            <div class="text-muted small">Valoare totala fara TVA</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center py-3">
+            <div class="fs-4 fw-bold text-warning">{{ "%.2f"|format(total_valoare * 0.09) }} Lei</div>
+            <div class="text-muted small">TVA 9%</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center py-3">
+            <div class="fs-4 fw-bold">{{ "%.2f"|format(total_valoare * 1.09) }} Lei</div>
+            <div class="text-muted small">Valoare cu TVA</div>
+        </div>
+    </div>
+</div>
+<div class="card">
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead><tr>
+                <th class="ps-3">Cod articol</th><th>Denumire</th>
+                <th class="text-center">UM</th><th class="text-end">Cantitate</th>
+                <th class="text-end">Pret</th><th class="text-end pe-3">Valoare fara TVA</th>
+            </tr></thead>
+            <tbody>
+            {% for d in detalii %}
+            <tr>
+                <td class="ps-3 text-muted small">{{ d.cod_articol or '-' }}</td>
+                <td class="fw-semibold">{{ d.denumire_original }}
+                    {% if not d.produs_id %}
+                    <span class="badge bg-warning text-dark ms-1" title="Produs negasit in catalog">!</span>
+                    {% endif %}
+                </td>
+                <td class="text-center"><span class="badge-um">{{ d.unitate_masura }}</span></td>
+                <td class="text-end">{{ "%.3f"|format(d.cantitate) }}</td>
+                <td class="text-end">{{ "%.2f"|format(d.pret) }}</td>
+                <td class="text-end pe-3 fw-semibold">{{ "%.2f"|format(d.valoare_fara_tva) }} Lei</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Distributii{% endblock %}
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-start">
+    <div><h4><i class="bi bi-arrow-up-circle me-2 text-primary"></i>Avize Distributie</h4><span class="text-muted">Marfa trimisa la locatii Carrefour</span></div>
+    <a href="/distributii/adauga" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Aviz nou</a>
+</div>
+<div class="card">
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead><tr>
+                <th class="ps-3">Data</th><th>Nr. Aviz</th><th>Locatie</th>
+                <th class="text-center">Produse</th><th class="text-end pe-3">Cant. totala</th>
+                <th class="text-center">Actiuni</th>
+            </tr></thead>
+            <tbody>
+            {% for d in distributii %}
+            <tr>
+                <td class="ps-3">{{ d.data }}</td>
+                <td>{{ d.nr_aviz or '-' }}</td>
+                <td class="fw-semibold">{{ d.locatie_nume }}</td>
+                <td class="text-center"><span class="badge bg-light text-dark">{{ d.nr_produse }}</span></td>
+                <td class="text-end pe-3">{{ "%.3f"|format(d.total_cantitate) }}</td>
+                <td class="text-center">
+                    <a href="/distributii/detalii/{{ d.id }}" class="btn btn-sm btn-outline-info"><i class="bi bi-eye"></i></a>
+                    <form method="POST" action="/distributii/sterge/{{ d.id }}" class="d-inline" onsubmit="return confirm('Stergi aceasta distributie?')">
+                        <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                    </form>
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="6" class="text-center py-4 text-muted">Nu exista distributii inregistrate.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

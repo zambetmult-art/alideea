@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Detalii Intrare{% endblock %}
+{% block content %}
+<div class="page-header d-flex justify-content-between">
+    <h4><i class="bi bi-arrow-down-circle me-2 text-primary"></i>Intrare stoc #{{ intrare.id }}</h4>
+    <a href="/intrari/" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Inapoi</a>
+</div>
+<div class="row g-3">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-5">Data:</dt><dd class="col-7">{{ intrare.data }}</dd>
+                    <dt class="col-5">Furnizor:</dt><dd class="col-7">{{ intrare.furnizor_nume or '-' }}</dd>
+                    <dt class="col-5">Document:</dt><dd class="col-7">{{ intrare.nr_document or '-' }}</dd>
+                    <dt class="col-5">Observatii:</dt><dd class="col-7">{{ intrare.observatii or '-' }}</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body p-0">
+                <table class="table mb-0">
+                    <thead><tr>
+                        <th class="ps-3">Produs</th><th class="text-center">UM</th>
+                        <th class="text-end">Cantitate</th><th class="text-end">Pret unitar</th>
+                        <th class="text-end pe-3">Valoare</th>
+                    </tr></thead>
+                    <tbody>
+                    {% for d in detalii %}
+                    <tr>
+                        <td class="ps-3 fw-semibold">{{ d.denumire }}</td>
+                        <td class="text-center"><span class="badge-um">{{ d.unitate_masura }}</span></td>
+                        <td class="text-end">{{ "%.3f"|format(d.cantitate) }}</td>
+                        <td class="text-end">{{ "%.2f"|format(d.pret_unitar) }}</td>
+                        <td class="text-end pe-3 fw-semibold">{{ "%.2f"|format(d.cantitate * d.pret_unitar) }} Lei</td>
+                    </tr>
+                    {% endfor %}
+                    <tr class="table-light">
+                        <td colspan="4" class="text-end fw-bold ps-3">TOTAL:</td>
+                        <td class="text-end pe-3 fw-bold">{{ "%.2f"|format(detalii | sum(attribute='cantitate') * 1) }} Lei</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

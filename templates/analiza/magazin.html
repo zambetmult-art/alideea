@@ -1,0 +1,257 @@
+{% extends "base.html" %}
+{% block title %}Analiza Vanzari{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h4><i class="bi bi-graph-up-arrow me-2 text-primary"></i>Analiza Vanzari</h4>
+    <span class="text-muted">Grafice si statistici detaliate</span>
+</div>
+
+<!-- Filtre globale -->
+<div class="card mb-3">
+    <div class="card-body py-2">
+        <div class="row g-2 align-items-center">
+            <div class="col-md-2">
+                <label class="form-label mb-0 small fw-semibold">De la:</label>
+                <input type="date" id="dataStart" class="form-control form-control-sm">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label mb-0 small fw-semibold">Pana la:</label>
+                <input type="date" id="dataEnd" class="form-control form-control-sm">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label mb-0 small fw-semibold">Locatie:</label>
+                <select id="filtruLocatie" class="form-select form-select-sm">
+                    <option value="toate">Toate locatiile</option>
+                    {% for l in locatii %}
+                    <option value="{{ l.id }}">{{ l.nume }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label mb-0 small fw-semibold">Categorie:</label>
+                <select id="filtruCategorie" class="form-select form-select-sm">
+                    <option value="toate">Toate categoriile</option>
+                    {% for c in categorii %}
+                    <option value="{{ c.id }}">{{ c.nume }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button class="btn btn-primary btn-sm w-100" onclick="reloadAll()">
+                    <i class="bi bi-funnel me-1"></i>Aplica filtre
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <!-- Vanzari saptamanale -->
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-bar-chart me-2 text-primary"></i>Vanzari saptamanale</div>
+            <div class="card-body">
+                <canvas id="chartSaptamanal" height="80"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <!-- Vanzari pe locatii -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-geo-alt me-2 text-success"></i>Vanzari pe locatii</div>
+            <div class="card-body">
+                <canvas id="chartLocatii" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+    <!-- Vanzari pe categorii -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-pie-chart me-2 text-warning"></i>Vanzari pe categorii</div>
+            <div class="card-body">
+                <canvas id="chartCategorii" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Comparatie locatii -->
+<div class="card mb-3">
+    <div class="card-header"><i class="bi bi-arrows-angle-expand me-2 text-danger"></i>Comparatie locatii</div>
+    <div class="card-body p-0">
+        <table class="table mb-0" id="tabelComparatie">
+            <thead><tr>
+                <th class="ps-3">Locatie</th>
+                <th class="text-end">Saptamana curenta</th>
+                <th class="text-end">Saptamana trecuta</th>
+                <th class="text-end">Luna curenta</th>
+                <th class="text-end pe-3">Tendinta</th>
+            </tr></thead>
+            <tbody id="bodyComparatie">
+                <tr><td colspan="5" class="text-center py-3 text-muted">Se incarca...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Top produse -->
+<div class="card">
+    <div class="card-header"><i class="bi bi-trophy me-2 text-warning"></i>Top produse</div>
+    <div class="card-body p-0">
+        <table class="table mb-0">
+            <thead><tr>
+                <th class="ps-3">#</th><th>Produs</th><th>Categorie</th>
+                <th class="text-center">UM</th>
+                <th class="text-end">Cantitate vanduta</th>
+                <th class="text-end pe-3">Valoare (Lei fara TVA)</th>
+            </tr></thead>
+            <tbody id="bodyTopProduse">
+                <tr><td colspan="6" class="text-center py-3 text-muted">Se incarca...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+let chartSapt, chartLoc, chartCat;
+const COLORS = ['#0d6efd','#198754','#fd7e14','#6f42c1','#dc3545','#20c997','#ffc107','#0dcaf0'];
+
+function getFilters() {
+    return {
+        locatie_id: document.getElementById('filtruLocatie').value,
+        categorie_id: document.getElementById('filtruCategorie').value,
+        data_start: document.getElementById('dataStart').value,
+        data_end: document.getElementById('dataEnd').value
+    };
+}
+
+function buildParams(extra = {}) {
+    const f = { ...getFilters(), ...extra };
+    return new URLSearchParams(Object.fromEntries(Object.entries(f).filter(([,v]) => v))).toString();
+}
+
+async function loadSaptamanal() {
+    const r = await fetch('/analiza/api/vanzari_saptamanale?' + buildParams());
+    const data = await r.json();
+    const labels = data.map(d => d.saptamana || d.data_raportare?.slice(0,10));
+    const values = data.map(d => d.valoare);
+    if (chartSapt) chartSapt.destroy();
+    chartSapt = new Chart(document.getElementById('chartSaptamanal'), {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [{
+                label: 'Vanzari (Lei fara TVA)',
+                data: values,
+                backgroundColor: 'rgba(13,110,253,0.7)',
+                borderColor: '#0d6efd',
+                borderWidth: 2,
+                borderRadius: 5
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true, ticks: { callback: v => v.toLocaleString('ro-RO') + ' Lei' } } }
+        }
+    });
+}
+
+async function loadLocatii() {
+    const r = await fetch('/analiza/api/vanzari_pe_locatii?' + buildParams());
+    const data = await r.json();
+    if (chartLoc) chartLoc.destroy();
+    chartLoc = new Chart(document.getElementById('chartLocatii'), {
+        type: 'bar',
+        data: {
+            labels: data.map(d => d.locatie),
+            datasets: [{
+                label: 'Valoare',
+                data: data.map(d => d.valoare),
+                backgroundColor: COLORS,
+                borderRadius: 5
+            }]
+        },
+        options: {
+            responsive: true,
+            indexAxis: 'y',
+            plugins: { legend: { display: false } },
+            scales: { x: { beginAtZero: true } }
+        }
+    });
+}
+
+async function loadCategorii() {
+    const r = await fetch('/analiza/api/vanzari_pe_categorii?' + buildParams());
+    const data = await r.json();
+    if (chartCat) chartCat.destroy();
+    chartCat = new Chart(document.getElementById('chartCategorii'), {
+        type: 'doughnut',
+        data: {
+            labels: data.map(d => d.categorie),
+            datasets: [{ data: data.map(d => d.valoare), backgroundColor: COLORS }]
+        },
+        options: { responsive: true, plugins: { legend: { position: 'right' } } }
+    });
+}
+
+async function loadComparatie() {
+    const r = await fetch('/analiza/api/comparatie_locatii');
+    const data = await r.json();
+    const tbody = document.getElementById('bodyComparatie');
+    if (!data.length) { tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-3">Nu exista date</td></tr>'; return; }
+    tbody.innerHTML = data.map(d => {
+        const trend = d.saptamana_curenta > d.saptamana_trecuta
+            ? '<span class="text-success"><i class="bi bi-arrow-up-short"></i>Crestere</span>'
+            : d.saptamana_curenta < d.saptamana_trecuta
+            ? '<span class="text-danger"><i class="bi bi-arrow-down-short"></i>Scadere</span>'
+            : '<span class="text-muted">Stabil</span>';
+        return `<tr>
+            <td class="ps-3 fw-semibold">${d.locatie}</td>
+            <td class="text-end">${d.saptamana_curenta.toLocaleString('ro-RO', {minimumFractionDigits:2})} Lei</td>
+            <td class="text-end">${d.saptamana_trecuta.toLocaleString('ro-RO', {minimumFractionDigits:2})} Lei</td>
+            <td class="text-end">${d.luna_curenta.toLocaleString('ro-RO', {minimumFractionDigits:2})} Lei</td>
+            <td class="text-end pe-3">${trend}</td>
+        </tr>`;
+    }).join('');
+}
+
+async function loadTopProduse() {
+    const r = await fetch('/analiza/api/top_produse?' + buildParams());
+    const data = await r.json();
+    const tbody = document.getElementById('bodyTopProduse');
+    if (!data.length) { tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-3">Nu exista date</td></tr>'; return; }
+    tbody.innerHTML = data.map((d, i) => `<tr>
+        <td class="ps-3 text-muted">${i+1}</td>
+        <td class="fw-semibold">${d.denumire}</td>
+        <td><span class="badge bg-light text-dark">${d.categorie || '-'}</span></td>
+        <td class="text-center"><span class="badge-um">${d.unitate_masura}</span></td>
+        <td class="text-end">${d.total_cant.toFixed(3)}</td>
+        <td class="text-end pe-3 fw-semibold">${d.total_val.toLocaleString('ro-RO', {minimumFractionDigits:2})} Lei</td>
+    </tr>`).join('');
+}
+
+function reloadAll() {
+    loadSaptamanal();
+    loadLocatii();
+    loadCategorii();
+    loadComparatie();
+    loadTopProduse();
+}
+
+// Init cu ultima luna
+document.addEventListener('DOMContentLoaded', function() {
+    const end = new Date();
+    const start = new Date();
+    start.setMonth(start.getMonth() - 3);
+    document.getElementById('dataEnd').value = end.toISOString().slice(0,10);
+    document.getElementById('dataStart').value = start.toISOString().slice(0,10);
+    reloadAll();
+});
+</script>
+{% endblock %}

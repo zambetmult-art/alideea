@@ -1,165 +1,240 @@
 import sqlite3
 import os
+from werkzeug.security import generate_password_hash
 
-DB_PATH = os.path.join(os.path.dirname(__file__), 'alideea.db')
+DB_PATH = os.path.join(os.path.dirname(__file__), 'gestiune.db')
 
 def get_db():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA foreign_keys = ON")
     return conn
 
 def init_db():
     conn = get_db()
     c = conn.cursor()
 
-    # Migrare - adauga coloane noi daca nu exista
-    try:
-        c.execute("ALTER TABLE products ADD COLUMN cod TEXT")
-    except Exception:
-        pass
-    try:
-        c.execute("ALTER TABLE products ADD COLUMN ean TEXT")
-    except Exception:
-        pass
-    try:
-        c.execute("ALTER TABLE stock_exits ADD COLUMN price REAL")
-    except Exception:
-        pass
+    # Utilizatori
+    c.execute('''CREATE TABLE IF NOT EXISTS utilizatori (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT UNIQUE NOT NULL,
+        parola TEXT NOT NULL,
+        nume_complet TEXT,
+        rol TEXT NOT NULL DEFAULT 'angajat',
+        locatie_id INTEGER,
+        activ INTEGER DEFAULT 1,
+        FOREIGN KEY (locatie_id) REFERENCES locatii(id)
+    )''')
 
-    c.executescript('''
-        CREATE TABLE IF NOT EXISTS locations (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            city TEXT,
-            active INTEGER DEFAULT 1,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
+    # Categorii produse
+    c.execute('''CREATE TABLE IF NOT EXISTS categorii (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nume TEXT UNIQUE NOT NULL
+    )''')
 
-        CREATE TABLE IF NOT EXISTS products (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            cod TEXT,
-            ean TEXT,
-            unit TEXT DEFAULT 'buc',
-            active INTEGER DEFAULT 1,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
+    # Locatii (magazine Carrefour)
+    c.execute('''CREATE TABLE IF NOT EXISTS locatii (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nume TEXT NOT NULL,
+        adresa TEXT,
+        activa INTEGER DEFAULT 1
+    )''')
 
-        CREATE TABLE IF NOT EXISTS inventory_reports (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            location_id INTEGER NOT NULL,
-            week_date TEXT NOT NULL,
-            submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (location_id) REFERENCES locations(id)
-        );
+    # Furnizori
+    c.execute('''CREATE TABLE IF NOT EXISTS furnizori (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nume TEXT NOT NULL,
+        contact TEXT,
+        telefon TEXT,
+        email TEXT,
+        activ INTEGER DEFAULT 1
+    )''')
 
-        CREATE TABLE IF NOT EXISTS inventory_items (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            report_id INTEGER NOT NULL,
-            product_id INTEGER NOT NULL,
-            quantity REAL DEFAULT 0,
-            FOREIGN KEY (report_id) REFERENCES inventory_reports(id),
-            FOREIGN KEY (product_id) REFERENCES products(id)
-        );
+    # Produse
+    c.execute('''CREATE TABLE IF NOT EXISTS produse (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        cod_articol TEXT UNIQUE,
+        cod_ean TEXT,
+        denumire TEXT NOT NULL,
+        categorie_id INTEGER,
+        unitate_masura TEXT NOT NULL DEFAULT 'kg',
+        pret_achizitie REAL DEFAULT 0,
+        pret_vanzare REAL DEFAULT 0,
+        stoc_minim REAL DEFAULT 0,
+        activ INTEGER DEFAULT 1,
+        FOREIGN KEY (categorie_id) REFERENCES categorii(id)
+    )''')
 
-        CREATE TABLE IF NOT EXISTS orders (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            location_id INTEGER NOT NULL,
-            status TEXT DEFAULT 'nou',
-            seen INTEGER DEFAULT 0,
-            notes TEXT,
-            submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (location_id) REFERENCES locations(id)
-        );
+    # Intrari stoc (de la furnizori)
+    c.execute('''CREATE TABLE IF NOT EXISTS intrari (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        data TEXT NOT NULL,
+        furnizor_id INTEGER,
+        nr_document TEXT,
+        observatii TEXT,
+        utilizator_id INTEGER,
+        created_at TEXT DEFAULT (datetime('now')),
+        FOREIGN KEY (furnizor_id) REFERENCES furnizori(id),
+        FOREIGN KEY (utilizator_id) REFERENCES utilizatori(id)
+    )''')
 
-        CREATE TABLE IF NOT EXISTS order_items (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            order_id INTEGER NOT NULL,
-            product_id INTEGER NOT NULL,
-            quantity REAL DEFAULT 0,
-            FOREIGN KEY (order_id) REFERENCES orders(id),
-            FOREIGN KEY (product_id) REFERENCES products(id)
-        );
+    c.execute('''CREATE TABLE IF NOT EXISTS intrari_detalii (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        intrare_id INTEGER NOT NULL,
+        produs_id INTEGER NOT NULL,
+        cantitate REAL NOT NULL,
+        pret_unitar REAL DEFAULT 0,
+        FOREIGN KEY (intrare_id) REFERENCES intrari(id) ON DELETE CASCADE,
+        FOREIGN KEY (produs_id) REFERENCES produse(id)
+    )''')
 
-        CREATE TABLE IF NOT EXISTS stock_entries (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            product_id INTEGER NOT NULL,
-            quantity REAL NOT NULL,
-            date TEXT NOT NULL,
-            notes TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (product_id) REFERENCES products(id)
-        );
+    # Avize distributie (stoc central → locatie)
+    c.execute('''CREATE TABLE IF NOT EXISTS distributii (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        data TEXT NOT NULL,
+        locatie_id INTEGER NOT NULL,
+        nr_aviz TEXT,
+        observatii TEXT,
+        utilizator_id INTEGER,
+        created_at TEXT DEFAULT (datetime('now')),
+        FOREIGN KEY (locatie_id) REFERENCES locatii(id),
+        FOREIGN KEY (utilizator_id) REFERENCES utilizatori(id)
+    )''')
 
-        CREATE TABLE IF NOT EXISTS stock_exits (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            product_id INTEGER NOT NULL,
-            quantity REAL NOT NULL,
-            date TEXT NOT NULL,
-            order_id INTEGER,
-            notes TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (product_id) REFERENCES products(id),
-            FOREIGN KEY (order_id) REFERENCES orders(id)
-        );
-    ''')
+    c.execute('''CREATE TABLE IF NOT EXISTS distributii_detalii (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        distributie_id INTEGER NOT NULL,
+        produs_id INTEGER NOT NULL,
+        cantitate REAL NOT NULL,
+        FOREIGN KEY (distributie_id) REFERENCES distributii(id) ON DELETE CASCADE,
+        FOREIGN KEY (produs_id) REFERENCES produse(id)
+    )''')
 
-    # Seed real locations from Excel
-    existing = c.execute("SELECT COUNT(*) FROM locations").fetchone()[0]
-    if existing == 0:
-        locations = [
-            ('Cora Bratianu', 'București'),
-            ('Carrefour Piatra Neamt', 'Piatra Neamț'),
-            ('Carrefour Vulcan', 'București'),
-            ('Carrefour Constanta', 'Constanța'),
-            ('Carrefour Orhideea', 'București'),
-            ('Carrefour Ploiesti Shopping', 'Ploiești'),
-            ('Carrefour Baneasa', 'București'),
-            ('Carrefour Galati', 'Galați'),
-            ('Carrefour Ploiesti Vest', 'Ploiești'),
-            ('Carrefour Brasov', 'Brașov'),
-            ('Carrefour Iasi Felicia', 'Iași'),
-            ('Carrefour Braila', 'Brăila'),
-            ('Carrefour Berceni', 'București'),
-            ('Carrefour Iasi Era', 'Iași'),
-            ('Carrefour Colentina', 'București'),
-        ]
-        c.executemany("INSERT INTO locations (name, city) VALUES (?, ?)", locations)
+    # Transferuri intre locatii
+    c.execute('''CREATE TABLE IF NOT EXISTS transferuri (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        data TEXT NOT NULL,
+        locatie_sursa_id INTEGER NOT NULL,
+        locatie_destinatie_id INTEGER NOT NULL,
+        nr_document TEXT,
+        observatii TEXT,
+        utilizator_id INTEGER,
+        created_at TEXT DEFAULT (datetime('now')),
+        FOREIGN KEY (locatie_sursa_id) REFERENCES locatii(id),
+        FOREIGN KEY (locatie_destinatie_id) REFERENCES locatii(id),
+        FOREIGN KEY (utilizator_id) REFERENCES utilizatori(id)
+    )''')
 
-    # Seed real products from Excel (93 products, unit kg)
-    existing_prod = c.execute("SELECT COUNT(*) FROM products").fetchone()[0]
-    if existing_prod == 0:
-        products = [
-            'ANTRICOT TARNESC DE VITA RAITAR', 'BRANZA DE BURDUF DODO', 'BRANZA FRAMANTATA DE OAIE ALIDEEA',
-            'BRANZA PROASPATA', 'BURIC DE SAVENI VIOFANNY', 'CABANOS BOIERESC', 'CALTABOS RAITAR',
-            'CARNATI BUCOVINEAN', 'CARNATI COPTI RAITAR', 'CARNATI CU PUI SI CURCAN',
-            'CARNATI CU VIN SI BUSUIOC', 'CARNATI MANGALITA', 'CARNATI PICANTI SASCA',
-            'CARNATI SASCA', 'CARNATI TRANDAFIR RAITAR', 'CAS DE VACA DODO', 'CAS DULCE DE OAIE ALIDEEA',
-            'CASCAVAL BUCOVINEAN AFUMAT', 'CASCAVAL BUCOVINEAN ZADA', 'CASCAVAL DE SAVENI VIOFANNY',
-            'CEAFA CRUD USCATA RAITAR', 'CEAFA HITUITA', 'CEAFA MANGALITA', 'CHISCA MOLDOVENEASCA',
-            'CONDIMENT PENTRU PORC 190 G HUSTIULIUC', 'CONDIMENT PENTRU PUI 190 G HUSTIULIUC',
-            'COSTITA FIARTA SI AFUM. RAITAR', 'CREMWURSTI CU PIEPT PUI', 'CREMWUSTI GROSI',
-            'DROB CU OU', 'GUSA CU BOIA', 'GUSA MANGALITA', 'JAMBON MIERE ROZMARIN RAITAR',
-            'JAMBON FARA OS RAITAR', 'JUMARI TARANESTI ALIDEEA', 'KAIZER RAITAR', 'LEBER RAITAR',
-            'LEBERWURST CERUIT RAITAR', 'MUSCHI FILE AFUMAT HITUIT', 'MUSCHI FILE CRUD USCAT RAITAR',
-            'MUSCHI FILE MANGALITA', 'MUSCHI MONTANA HITUIT', 'MUSCHI TIGANESC RAITAR',
-            'MUSCHIULET MANGALITA', 'PARIZER CU SUNCA', 'PARIZER CU VITA', 'PASTA DE ARDEI DULCE',
-            'PASTA DE ARDEI DULCE-PICANTA', 'PASTRAMA DE CURCAN RAITHAR', 'PASTRAMA DE VITA RAITAR',
-            'PASTRAMA MANGALITA', 'PASTRAMA PIEPT CURCAN RAITAR', 'PASTRAMA PORC TARANEASCA RAITAR',
-            'PATE COPT', 'PIEPT CONDIM TARANESC RAITAR', 'PIEPT CU BOIA', 'PIEPT PRESAT HITUIT RAITAR',
-            'PULPA PORC HITUITA RAITAR', 'RASOL DEZOSAT SI AFUMAT RAITAR', 'RULADA PIEPT CURCAN BUCOVINA',
-            'RULADA PIEPT PUI BUCOVINA', 'RULADA PORC LEGATA RAITAR', 'RULADA SASCA RAITAR',
-            'SALAM CU PIPER RAITAR', 'SALAM BUCOVINEAN RAITAR', 'SALAM NEMTESC RAITAR',
-            'SALAM PICANT SASCA', 'SALAM POIANA RAITAR', 'SALAM USCAT RAITAR', 'SALATA DE ARDEI COPTI',
-            'SCARITA AFUMATA', 'SLANINA AFUMATA RAITAR', 'SLANINA CU USTUROI RAITAR',
-            'SLANINA DIN BUCOVINA', 'SLANINA MANGALITA', 'SORIC COPT ALIDEEA', 'SUNCA DE SASCA RAITAR',
-            'SUNCULITA MANGALITA', 'SUNCULITA MOSULUI', 'TELEMEA DE VACA DODO', 'TELEMEA MATURATA DE OAIE',
-            'TELEMEA PROASPATA MIXTA', 'TOBA DE LIMBA', 'TOBA DE PUI RAITAR', 'TOBA TARANEASCA RAITAR',
-            'TOCHITURA TARANEASCA RAITAR', 'URDA VIOFANNY', 'URECHI PORC RAITAR',
-            'ZACUSCA CU CIUPECI HUSTIULIUC', 'ZACUSCA CU DE TOATE', 'ZACUSCA CU DOVLECEI',
-            'ZACUSCA DE VINETE', 'ZACUSCA PICANTA',
-        ]
-        c.executemany("INSERT INTO products (name, unit) VALUES (?, 'kg')", [(p,) for p in products])
+    c.execute('''CREATE TABLE IF NOT EXISTS transferuri_detalii (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        transfer_id INTEGER NOT NULL,
+        produs_id INTEGER NOT NULL,
+        cantitate REAL NOT NULL,
+        FOREIGN KEY (transfer_id) REFERENCES transferuri(id) ON DELETE CASCADE,
+        FOREIGN KEY (produs_id) REFERENCES produse(id)
+    )''')
+
+    # Vanzari (import Excel Carrefour)
+    c.execute('''CREATE TABLE IF NOT EXISTS vanzari_import (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        data_raportare TEXT NOT NULL,
+        locatie_id INTEGER NOT NULL,
+        saptamana TEXT,
+        fisier_original TEXT,
+        importat_la TEXT DEFAULT (datetime('now')),
+        utilizator_id INTEGER,
+        FOREIGN KEY (locatie_id) REFERENCES locatii(id),
+        FOREIGN KEY (utilizator_id) REFERENCES utilizatori(id)
+    )''')
+
+    c.execute('''CREATE TABLE IF NOT EXISTS vanzari_detalii (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        import_id INTEGER NOT NULL,
+        produs_id INTEGER,
+        cod_articol TEXT,
+        cod_ean TEXT,
+        denumire_original TEXT,
+        cantitate REAL NOT NULL,
+        unitate_masura TEXT,
+        pret REAL DEFAULT 0,
+        valoare_fara_tva REAL DEFAULT 0,
+        FOREIGN KEY (import_id) REFERENCES vanzari_import(id) ON DELETE CASCADE,
+        FOREIGN KEY (produs_id) REFERENCES produse(id)
+    )''')
+
+    # Retururi (locatie → stoc central)
+    c.execute('''CREATE TABLE IF NOT EXISTS retururi (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        data TEXT NOT NULL,
+        locatie_id INTEGER NOT NULL,
+        nr_document TEXT,
+        observatii TEXT,
+        utilizator_id INTEGER,
+        created_at TEXT DEFAULT (datetime('now')),
+        FOREIGN KEY (locatie_id) REFERENCES locatii(id),
+        FOREIGN KEY (utilizator_id) REFERENCES utilizatori(id)
+    )''')
+
+    c.execute('''CREATE TABLE IF NOT EXISTS retururi_detalii (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        retur_id INTEGER NOT NULL,
+        produs_id INTEGER NOT NULL,
+        cantitate REAL NOT NULL,
+        FOREIGN KEY (retur_id) REFERENCES retururi(id) ON DELETE CASCADE,
+        FOREIGN KEY (produs_id) REFERENCES produse(id)
+    )''')
+
+    # Sampling & Resturi (pierderi)
+    c.execute('''CREATE TABLE IF NOT EXISTS pierderi (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        data TEXT NOT NULL,
+        locatie_id INTEGER NOT NULL,
+        tip TEXT NOT NULL CHECK(tip IN ('sampling', 'rest')),
+        produs_id INTEGER NOT NULL,
+        cantitate REAL NOT NULL,
+        observatii TEXT,
+        utilizator_id INTEGER,
+        created_at TEXT DEFAULT (datetime('now')),
+        FOREIGN KEY (locatie_id) REFERENCES locatii(id),
+        FOREIGN KEY (produs_id) REFERENCES produse(id),
+        FOREIGN KEY (utilizator_id) REFERENCES utilizatori(id)
+    )''')
+
+    # Inventar saptamanal
+    c.execute('''CREATE TABLE IF NOT EXISTS inventar (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        data TEXT NOT NULL,
+        locatie_id INTEGER NOT NULL,
+        observatii TEXT,
+        utilizator_id INTEGER,
+        finalizat INTEGER DEFAULT 0,
+        created_at TEXT DEFAULT (datetime('now')),
+        FOREIGN KEY (locatie_id) REFERENCES locatii(id),
+        FOREIGN KEY (utilizator_id) REFERENCES utilizatori(id)
+    )''')
+
+    c.execute('''CREATE TABLE IF NOT EXISTS inventar_detalii (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        inventar_id INTEGER NOT NULL,
+        produs_id INTEGER NOT NULL,
+        cantitate_sistem REAL DEFAULT 0,
+        cantitate_fizica REAL NOT NULL,
+        diferenta REAL GENERATED ALWAYS AS (cantitate_fizica - cantitate_sistem) STORED,
+        FOREIGN KEY (inventar_id) REFERENCES inventar(id) ON DELETE CASCADE,
+        FOREIGN KEY (produs_id) REFERENCES produse(id)
+    )''')
+
+    # Adauga admin default daca nu exista
+    c.execute("SELECT COUNT(*) FROM utilizatori WHERE rol='admin'")
+    if c.fetchone()[0] == 0:
+        c.execute('''INSERT INTO utilizatori (username, parola, nume_complet, rol)
+                     VALUES (?, ?, ?, ?)''',
+                  ('admin', generate_password_hash('admin123'), 'Administrator', 'admin'))
+
+    # Categorii default
+    categorii_default = ['Mezeluri', 'Branzeturi', 'Zacusca', 'Conserve', 'Lactate', 'Altele']
+    for cat in categorii_default:
+        c.execute("INSERT OR IGNORE INTO categorii (nume) VALUES (?)", (cat,))
 
     conn.commit()
     conn.close()

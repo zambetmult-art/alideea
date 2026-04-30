@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}ALIDEEA{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="/static/css/style.css" rel="stylesheet">
+</head>
+<body>
+
+<!-- Navbar top -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary fixed-top px-3">
+    <a class="navbar-brand fw-bold" href="/dashboard">
+        <i class="bi bi-boxes me-2"></i>ALIDEEA
+    </a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain">
+        <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarMain">
+        <ul class="navbar-nav ms-auto align-items-center">
+            <li class="nav-item dropdown">
+                <a class="nav-link text-light dropdown-toggle" href="#" data-bs-toggle="dropdown">
+                    <i class="bi bi-circle-fill text-success me-1" style="font-size:8px"></i>Online
+                    <span class="badge bg-light text-primary ms-1">{{ online_users|length if online_users else 1 }}</span>
+                </a>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    {% if online_users %}
+                    {% for u in online_users %}
+                    <li><span class="dropdown-item-text">
+                        <i class="bi bi-circle-fill text-success me-1" style="font-size:8px"></i>
+                        {{ u.nume_complet or u.username }}
+                        <small class="text-muted ms-1">({{ u.rol }})</small>
+                    </span></li>
+                    {% endfor %}
+                    {% endif %}
+                </ul>
+            </li>
+            <li class="nav-item dropdown">
+                <a class="nav-link text-light dropdown-toggle" href="#" data-bs-toggle="dropdown">
+                    <i class="bi bi-person-circle me-1"></i>
+                    {{ current_user.nume_complet or current_user.username }}
+                    <span class="badge bg-light text-primary ms-1">{{ current_user.rol }}</span>
+                </a>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    {% if current_user.is_admin() %}
+                    <li>
+                        <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#modalSchimbaParola">
+                            <i class="bi bi-key me-2"></i>Schimba Parola
+                        </a>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    {% endif %}
+                    <li>
+                        <a class="dropdown-item text-danger" href="/logout">
+                            <i class="bi bi-box-arrow-right me-2"></i>Iesire
+                        </a>
+                    </li>
+                </ul>
+            </li>
+        </ul>
+    </div>
+</nav>
+
+<div class="d-flex" style="margin-top: 56px;">
+    <!-- Sidebar -->
+    <nav id="sidebar" class="sidebar d-flex flex-column p-0">
+        <!-- DASHBOARD -->
+        <div class="sidebar-section">
+            <a href="/dashboard" class="sidebar-link {% if request.path == '/dashboard' %}active{% endif %}">
+                <i class="bi bi-speedometer2"></i> Dashboard
+            </a>
+        </div>
+
+        <!-- NOMENCLATOARE -->
+        {% if current_user.is_manager() %}
+        <div class="sidebar-section">
+            <div class="sidebar-label">NOMENCLATOARE</div>
+            <a href="/produse/" class="sidebar-link {% if '/produse' in request.path %}active{% endif %}">
+                <i class="bi bi-box-seam"></i> Produse
+            </a>
+            <a href="/furnizori/" class="sidebar-link {% if '/furnizori' in request.path %}active{% endif %}">
+                <i class="bi bi-truck"></i> Furnizori
+            </a>
+            <a href="/locatii/" class="sidebar-link {% if '/locatii' in request.path %}active{% endif %}">
+                <i class="bi bi-geo-alt"></i> Locatii
+            </a>
+            {% if current_user.rol == 'admin' %}
+            <a href="/utilizatori/" class="sidebar-link {% if '/utilizatori' in request.path %}active{% endif %}">
+                <i class="bi bi-people"></i> Utilizatori
+            </a>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- ANGAJATI -->
+        <div class="sidebar-section">
+            <div class="sidebar-label">ANGAJATI</div>
+            <a href="/documente/" class="sidebar-link {% if request.path == '/documente/' %}active{% endif %}">
+                <i class="bi bi-person-badge"></i> Documente Angajati
+            </a>
+            <a href="/documente/analize" class="sidebar-link {% if '/documente/analize' in request.path %}active{% endif %}">
+                <i class="bi bi-clipboard2-pulse"></i> Analize Medicale
+            </a>
+            <a href="/documente/curs-igiena" class="sidebar-link {% if '/documente/curs-igiena' in request.path %}active{% endif %}">
+                <i class="bi bi-mortarboard"></i> Curs Igiena
+            </a>
+            {% if current_user.is_manager() %}
+            <a href="/delegatii/" class="sidebar-link {% if '/delegatii' in request.path %}active{% endif %}">
+                <i class="bi bi-file-earmark-text"></i> Delegatii
+            </a>
+            <a href="/salarii/" class="sidebar-link {% if '/salarii' in request.path %}active{% endif %}">
+                <i class="bi bi-cash-coin"></i> Salarii & Costuri
+            </a>
+            {% endif %}
+        </div>
+
+        <!-- GESTIUNE STOCURI -->
+        {% if current_user.is_manager() %}
+        <div class="sidebar-section">
+            <div class="sidebar-label">GESTIUNE STOCURI</div>
+            <a href="/intrari/" class="sidebar-link {% if '/intrari' in request.path %}active{% endif %}">
+                <i class="bi bi-arrow-down-circle"></i> Intrari Marfa
+            </a>
+            <a href="/vanzari/" class="sidebar-link {% if '/vanzari' in request.path %}active{% endif %}">
+                <i class="bi bi-file-earmark-excel"></i> Vanzari
+            </a>
+            <a href="/distributii/" class="sidebar-link {% if '/distributii' in request.path %}active{% endif %}">
+                <i class="bi bi-arrow-up-circle"></i> Distributii
+            </a>
+            <a href="/transferuri/" class="sidebar-link {% if '/transferuri' in request.path %}active{% endif %}">
+                <i class="bi bi-arrow-left-right"></i> Transferuri
+            </a>
+            <a href="/retururi/" class="sidebar-link {% if '/retururi' in request.path %}active{% endif %}">
+                <i class="bi bi-arrow-return-left"></i> Retururi
+            </a>
+            <a href="/stoc/" class="sidebar-link {% if '/stoc' in request.path %}active{% endif %}">
+                <i class="bi bi-list-check"></i> Stoc Curent
+            </a>
+            <a href="/inventar/" class="sidebar-link {% if '/inventar' in request.path %}active{% endif %}">
+                <i class="bi bi-clipboard-check"></i> Inventar
+            </a>
+        </div>
+        {% endif %}
+
+        <!-- PIERDERI -->
+        <div class="sidebar-section">
+            <div class="sidebar-label">PIERDERI</div>
+            <a href="/pierderi/sampling" class="sidebar-link {% if '/pierderi/sampling' in request.path %}active{% endif %}">
+                <i class="bi bi-droplet-half"></i> Sampling
+            </a>
+            <a href="/pierderi/resturi" class="sidebar-link {% if '/pierderi/resturi' in request.path %}active{% endif %}">
+                <i class="bi bi-dash-circle"></i> Resturi
+            </a>
+        </div>
+
+        <!-- ANALIZA -->
+        {% if current_user.is_manager() %}
+        <div class="sidebar-section">
+            <div class="sidebar-label">ANALIZA & RAPOARTE</div>
+            <a href="/analiza/magazin" class="sidebar-link {% if '/analiza/magazin' in request.path %}active{% endif %}">
+                <i class="bi bi-shop"></i> Per Magazin
+            </a>
+            <a href="/analiza/companie" class="sidebar-link {% if '/analiza/companie' in request.path %}active{% endif %}">
+                <i class="bi bi-building"></i> Per Companie
+            </a>
+            <a href="/analiza/produs" class="sidebar-link {% if '/analiza/produs' in request.path %}active{% endif %}">
+                <i class="bi bi-box-seam"></i> Per Produs
+            </a>
+            <a href="/analiza/comparatii" class="sidebar-link {% if '/analiza/comparatii' in request.path %}active{% endif %}">
+                <i class="bi bi-bar-chart-line"></i> Comparatii
+            </a>
+        </div>
+        {% endif %}
+    </nav>
+
+    <!-- Main content -->
+    <main class="main-content flex-grow-1 p-4">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+</div>
+
+<!-- Modal Schimba Parola -->
+<div class="modal fade" id="modalSchimbaParola" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-key me-2"></i>Schimba Parola</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="/schimba-parola">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Parola noua</label>
+                        <input type="password" name="parola_noua" class="form-control" required minlength="4" autocomplete="new-password">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Confirmare parola noua</label>
+                        <input type="password" name="confirmare_parola" class="form-control" required minlength="4" autocomplete="new-password">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Anuleaza</button>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Salveaza</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script src="/static/js/main.js"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Detalii Distributie{% endblock %}
+{% block content %}
+<div class="page-header d-flex justify-content-between">
+    <h4><i class="bi bi-arrow-up-circle me-2 text-primary"></i>Aviz distributie #{{ distributie.id }}</h4>
+    <a href="/distributii/" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Inapoi</a>
+</div>
+<div class="row g-3">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-5">Data:</dt><dd class="col-7">{{ distributie.data }}</dd>
+                    <dt class="col-5">Locatie:</dt><dd class="col-7 fw-semibold">{{ distributie.locatie_nume }}</dd>
+                    <dt class="col-5">Nr. aviz:</dt><dd class="col-7">{{ distributie.nr_aviz or '-' }}</dd>
+                    <dt class="col-5">Observatii:</dt><dd class="col-7">{{ distributie.observatii or '-' }}</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body p-0">
+                <table class="table mb-0">
+                    <thead><tr>
+                        <th class="ps-3">Produs</th><th class="text-center">UM</th>
+                        <th class="text-end pe-3">Cantitate</th>
+                    </tr></thead>
+                    <tbody>
+                    {% for d in detalii %}
+                    <tr>
+                        <td class="ps-3 fw-semibold">{{ d.denumire }}</td>
+                        <td class="text-center"><span class="badge-um">{{ d.unitate_masura }}</span></td>
+                        <td class="text-end pe-3">{{ "%.3f"|format(d.cantitate) }}</td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Intrari Stoc{% endblock %}
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-start">
+    <div><h4><i class="bi bi-arrow-down-circle me-2 text-primary"></i>Intrari Stoc</h4><span class="text-muted">Marfa primita de la furnizori</span></div>
+    <div class="d-flex gap-2">
+        <a href="/intrari/import-excel" class="btn btn-success btn-sm"><i class="bi bi-file-earmark-excel me-1"></i>Import Excel</a>
+        <a href="/intrari/adauga" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Intrare noua</a>
+    </div>
+</div>
+<div class="card">
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead><tr>
+                <th class="ps-3">Data</th><th>Nr. document</th><th>Furnizor</th>
+                <th class="text-center">Produse</th><th class="text-end">Valoare</th>
+                <th class="text-center pe-3">Actiuni</th>
+            </tr></thead>
+            <tbody>
+            {% for i in intrari %}
+            <tr>
+                <td class="ps-3">{{ i.data }}</td>
+                <td>{{ i.nr_document or '-' }}</td>
+                <td>{{ i.furnizor_nume or '-' }}</td>
+                <td class="text-center"><span class="badge bg-light text-dark">{{ i.nr_produse }}</span></td>
+                <td class="text-end fw-semibold">{{ "%.2f"|format(i.valoare_totala) }} Lei</td>
+                <td class="text-center pe-3">
+                    <a href="/intrari/detalii/{{ i.id }}" class="btn btn-sm btn-outline-info"><i class="bi bi-eye"></i></a>
+                    <form method="POST" action="/intrari/sterge/{{ i.id }}" class="d-inline" onsubmit="return confirm('Stergi aceasta intrare?')">
+                        <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                    </form>
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="6" class="text-center py-4 text-muted">Nu exista intrari inregistrate.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

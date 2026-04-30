@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Transfer nou{% endblock %}
+{% block content %}
+<div class="page-header"><h4><i class="bi bi-arrow-left-right me-2 text-primary"></i>Transfer intre locatii</h4></div>
+<form method="POST" id="formTransfer">
+    <input type="hidden" name="produse_json" id="produseJson">
+    <div class="row g-3">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-2">
+                            <label class="form-label">Data <span class="text-danger">*</span></label>
+                            <input type="date" name="data" class="form-control" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Locatie sursa (de la) <span class="text-danger">*</span></label>
+                            <select name="locatie_sursa_id" class="form-select" required>
+                                <option value="">-- De la --</option>
+                                {% for l in locatii %}
+                                <option value="{{ l.id }}">{{ l.nume }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Locatie destinatie (catre) <span class="text-danger">*</span></label>
+                            <select name="locatie_destinatie_id" class="form-select" required>
+                                <option value="">-- Catre --</option>
+                                {% for l in locatii %}
+                                <option value="{{ l.id }}">{{ l.nume }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Nr. document</label>
+                            <input type="text" name="nr_document" class="form-control">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between">
+                    <span>Produse transferate</span>
+                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="addProductRow(document.getElementById('produsePicker'))">
+                        <i class="bi bi-plus-lg me-1"></i>Adauga
+                    </button>
+                </div>
+                <div class="card-body"><div id="produsePicker"></div></div>
+            </div>
+        </div>
+        <div class="col-12 d-flex gap-2">
+            <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Salveaza transfer</button>
+            <a href="/transferuri/" class="btn btn-outline-secondary">Anuleaza</a>
+        </div>
+    </div>
+</form>
+{% endblock %}
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    addProductRow(document.getElementById('produsePicker'));
+    document.querySelector('input[name=data]').valueAsDate = new Date();
+    document.getElementById('formTransfer').addEventListener('submit', function(e) {
+        const produse = collectProducts('produsePicker');
+        if (!produse.length) { e.preventDefault(); alert('Adauga cel putin un produs!'); return; }
+        document.getElementById('produseJson').value = JSON.stringify(produse);
+    });
+});
+</script>
+{% endblock %}

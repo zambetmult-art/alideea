@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Editeaza furnizor' if furnizor else 'Furnizor nou' }}{% endblock %}
+{% block content %}
+<div class="page-header"><h4><i class="bi bi-truck me-2 text-primary"></i>{{ 'Editeaza furnizor' if furnizor else 'Furnizor nou' }}</h4></div>
+<div class="card" style="max-width:500px">
+    <div class="card-body">
+        <form method="POST">
+            <div class="mb-3">
+                <label class="form-label">Nume <span class="text-danger">*</span></label>
+                <input type="text" name="nume" class="form-control" required value="{{ furnizor.nume if furnizor else '' }}">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Persoana contact</label>
+                <input type="text" name="contact" class="form-control" value="{{ furnizor.contact if furnizor else '' }}">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Telefon</label>
+                <input type="text" name="telefon" class="form-control" value="{{ furnizor.telefon if furnizor else '' }}">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Email</label>
+                <input type="email" name="email" class="form-control" value="{{ furnizor.email if furnizor else '' }}">
+            </div>
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Salveaza</button>
+                <a href="/furnizori/" class="btn btn-outline-secondary">Anuleaza</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
