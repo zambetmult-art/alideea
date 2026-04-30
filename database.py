@@ -23,8 +23,14 @@ def init_db():
         rol TEXT NOT NULL DEFAULT 'angajat',
         locatie_id INTEGER,
         activ INTEGER DEFAULT 1,
+        last_seen TEXT,
         FOREIGN KEY (locatie_id) REFERENCES locatii(id)
     )''')
+    # Migrare: adauga last_seen daca nu exista
+    try:
+        c.execute("ALTER TABLE utilizatori ADD COLUMN last_seen TEXT")
+    except Exception:
+        pass
 
     # Categorii produse
     c.execute('''CREATE TABLE IF NOT EXISTS categorii (
