@@ -3,6 +3,7 @@ from flask_login import login_required, current_user
 from database import get_db
 import pandas as pd
 import os
+import io
 
 produse_bp = Blueprint('produse', __name__, url_prefix='/produse')
 
@@ -128,10 +129,8 @@ def import_excel():
         if not f or not f.filename.endswith(('.xlsx', '.xls')):
             flash('Selectati un fisier Excel valid (.xlsx sau .xls).', 'danger')
             return redirect(url_for('produse.import_excel'))
-        upload_path = os.path.join('uploads', f.filename)
-        f.save(upload_path)
         try:
-            df = pd.read_excel(upload_path)
+            df = pd.read_excel(io.BytesIO(f.read()))
             df.columns = [str(c).strip().lower() for c in df.columns]
             db = get_db()
             categorii = {r['nume'].lower(): r['id'] for r in db.execute("SELECT * FROM categorii").fetchall()}
@@ -196,9 +195,6 @@ def import_excel():
             flash(f'Import finalizat: {importate} produse noi, {actualizate} actualizate.', 'success')
         except Exception as e:
             flash(f'Eroare la import: {str(e)}', 'danger')
-        finally:
-            if os.path.exists(upload_path):
-                os.remove(upload_path)
         return redirect(url_for('produse.index'))
     db = get_db()
     categorii = db.execute("SELECT * FROM categorii ORDER BY nume").fetchall()

@@ -3,6 +3,7 @@ from flask_login import login_required, current_user
 from database import get_db
 import pandas as pd
 import os
+import io
 from email_import import descarca_excel_din_email
 
 vanzari_bp = Blueprint('vanzari', __name__, url_prefix='/vanzari')
@@ -54,10 +55,12 @@ def cauta_locatie_in_db(db, locatie_din_excel):
     return None, None
 
 
-def proceseaza_fisier_excel(db, upload_path, filename, utilizator_id):
+def proceseaza_fisier_excel(db, file_bytes, filename, utilizator_id):
     """Proceseaza un fisier Excel Carrefour si il importa. Returneaza (mesaj, succes)."""
+    def _buf():
+        return io.BytesIO(file_bytes)
     try:
-        xl = pd.ExcelFile(upload_path)
+        xl = pd.ExcelFile(_buf())
         sheet_names = xl.sheet_names
         xl.close()
 
@@ -76,7 +79,7 @@ def proceseaza_fisier_excel(db, upload_path, filename, utilizator_id):
 
         # --- Citeste ANTET: cauta Nr, Magazin si Data IN CONTINUT ---
         if sheet_antet:
-            df_a = pd.read_excel(upload_path, sheet_name=sheet_antet, header=None)
+            df_a = pd.read_excel(_buf(), sheet_name=sheet_antet, header=None)
             for _, row in df_a.iterrows():
                 vals = [str(v).strip() if pd.notna(v) else '' for v in row]
                 for i, v in enumerate(vals):
@@ -130,7 +133,7 @@ def proceseaza_fisier_excel(db, upload_path, filename, utilizator_id):
             saptamana = date.today().strftime('S%W/%Y')
 
         # --- Citeste LINII: primul rand e titlu ("Linii comanda"), al doilea e headerul real ---
-        df_raw = pd.read_excel(upload_path, sheet_name=sheet_linii, header=None)
+        df_raw = pd.read_excel(_buf(), sheet_name=sheet_linii, header=None)
         # Gaseste randul cu headerul real (contine "Articol" sau "Cod" sau "EAN")
         header_row = 0
         for i, row in df_raw.iterrows():
@@ -138,7 +141,7 @@ def proceseaza_fisier_excel(db, upload_path, filename, utilizator_id):
             if any(k in vals for k in ('articol', 'cod', 'ean', 'cant')):
                 header_row = i
                 break
-        df_data = pd.read_excel(upload_path, sheet_name=sheet_linii, header=header_row)
+        df_data = pd.read_excel(_buf(), sheet_name=sheet_linii, header=header_row)
         df_data.columns = [str(c).strip().lower() for c in df_data.columns]
 
         # Mapeaza coloanele
@@ -238,19 +241,11 @@ def import_vanzari():
         for f in fisiere:
             if not f.filename or not f.filename.endswith(('.xlsx', '.xls')):
                 continue
-            upload_path = os.path.join('uploads', f.filename)
-            f.save(upload_path)
-            try:
-                msg, succes = proceseaza_fisier_excel(db, upload_path, f.filename, current_user.id)
-                mesaje.append((msg, succes))
-                if succes:
-                    total_importate += 1
-            finally:
-                try:
-                    if os.path.exists(upload_path):
-                        os.remove(upload_path)
-                except PermissionError:
-                    pass  # fisierul va fi sters la urmatoarea rulare
+            file_bytes = f.read()
+            msg, succes = proceseaza_fisier_excel(db, file_bytes, f.filename, current_user.id)
+            mesaje.append((msg, succes))
+            if succes:
+                total_importate += 1
 
         db.close()
         for msg, succes in mesaje:
