@@ -1,0 +1,411 @@
+{% extends "base.html" %}
+{% block title %}Profitabilitate{% endblock %}
+{% block content %}
+
+<div class="page-header d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+    <div>
+        <h4><i class="bi bi-graph-up-arrow me-2 text-success"></i>Profitabilitate
+            {% if locatie_sel %}<span class="text-muted fw-normal">— {{ locatie_sel.nume }}</span>{% endif %}
+        </h4>
+        <span class="text-muted small">Venit vânzări · Cost marfă · Costuri angajați · Profit net</span>
+    </div>
+</div>
+
+<!-- ===== FILTRE ===== -->
+<div class="card mb-4">
+    <div class="card-body py-3">
+        {% set luni_names = ['','Ian','Feb','Mar','Apr','Mai','Iun','Iul','Aug','Sep','Oct','Nov','Dec'] %}
+        <form method="GET" class="row g-2 align-items-end">
+            <div class="col-6 col-md-3">
+                <label class="form-label small mb-1 text-muted">Locație</label>
+                <select name="locatie_id" class="form-select form-select-sm">
+                    <option value="">Toate locațiile</option>
+                    {% for l in locatii %}
+                    <option value="{{ l.id }}" {{ 'selected' if locatie_id == l.id|string }}>{{ l.nume }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label small mb-1 text-muted">An</label>
+                <select name="an" class="form-select form-select-sm">
+                    <option value="">Toți anii</option>
+                    {% for a in toti_ani %}
+                    <option value="{{ a }}" {{ 'selected' if an_sel == a }}>{{ a }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label small mb-1 text-muted">De la lună</label>
+                <select name="luna_start" class="form-select form-select-sm">
+                    <option value="">— început —</option>
+                    {% for m in range(1,13) %}
+                    <option value="{{ m }}" {{ 'selected' if luna_start_sel == m|string }}>{{ luni_names[m] }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label small mb-1 text-muted">Până la lună</label>
+                <select name="luna_fim" class="form-select form-select-sm">
+                    <option value="">— sfârșit —</option>
+                    {% for m in range(1,13) %}
+                    <option value="{{ m }}" {{ 'selected' if luna_fim_sel == m|string }}>{{ luni_names[m] }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-6 col-md-1">
+                <button type="submit" class="btn btn-primary btn-sm w-100">
+                    <i class="bi bi-funnel me-1"></i>Aplică
+                </button>
+            </div>
+            <div class="col-6 col-md-1">
+                <a href="/analiza/profitabilitate" class="btn btn-outline-secondary btn-sm w-100" title="Resetează filtrele">
+                    <i class="bi bi-x-circle"></i>
+                </a>
+            </div>
+            {% if an_sel or luna_start_sel or locatie_id %}
+            <div class="col-12">
+                <small class="text-muted">
+                    <i class="bi bi-filter-circle me-1"></i>
+                    Filtru activ:
+                    {% if locatie_sel %}locație: <strong>{{ locatie_sel.nume }}</strong>{% endif %}
+                    {% if an_sel %}{% if locatie_sel %} · {% endif %}an: <strong>{{ an_sel }}</strong>{% endif %}
+                    {% if luna_start_sel %}
+                        {% if an_sel or locatie_sel %} · {% endif %}
+                        perioadă: <strong>
+                        {% if luna_fim_sel and luna_fim_sel != luna_start_sel %}
+                            {{ luni_names[luna_start_sel|int] }} – {{ luni_names[luna_fim_sel|int] }} {{ an_sel }}
+                        {% else %}
+                            {{ luni_names[luna_start_sel|int] }} {{ an_sel }}
+                        {% endif %}
+                        </strong>
+                    {% endif %}
+                    {% if nr_luni %}
+                        · <span class="badge bg-info text-dark">{{ nr_luni }} lun{{ 'ă' if nr_luni == 1 else 'i' }}</span>
+                        <span class="text-muted">(costuri angajați × {{ nr_luni }})</span>
+                    {% endif %}
+                </small>
+            </div>
+            {% endif %}
+        </form>
+    </div>
+</div>
+
+<!-- ===== CARDS SUMAR ===== -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-4 col-xl">
+        <div class="stat-card bg-primary">
+            <div class="stat-icon"><i class="bi bi-cash-stack"></i></div>
+            <div class="stat-value">{{ "{:,.0f}".format(total_venit) }}</div>
+            <div class="stat-label">Venit vânzări (lei)</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4 col-xl">
+        <div class="stat-card bg-secondary">
+            <div class="stat-icon"><i class="bi bi-box-seam"></i></div>
+            <div class="stat-value">{{ "{:,.0f}".format(total_cost_marfa) }}</div>
+            <div class="stat-label">Cost marfă (lei)</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4 col-xl">
+        <div class="stat-card {{ 'bg-success' if total_marja >= 0 else 'bg-danger' }}">
+            <div class="stat-icon"><i class="bi bi-graph-up"></i></div>
+            <div class="stat-value">{{ "{:,.0f}".format(total_marja) }}</div>
+            <div class="stat-label">Marjă brută — {{ "%.1f"|format(total_marja_pct) }}%</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4 col-xl">
+        <div class="stat-card bg-warning">
+            <div class="stat-icon"><i class="bi bi-people"></i></div>
+            <div class="stat-value">{{ "{:,.0f}".format(total_cost_angajati) }}</div>
+            <div class="stat-label">Costuri angajați (lei)</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4 col-xl">
+        <div class="stat-card {{ 'bg-success' if total_profit >= 0 else 'bg-danger' }}">
+            <div class="stat-icon"><i class="bi bi-currency-exchange"></i></div>
+            <div class="stat-value">{{ "{:,.0f}".format(total_profit) }}</div>
+            <div class="stat-label">Profit net — {{ "%.1f"|format(total_profit_pct) }}%</div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== GRAFIC TREND ===== -->
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <span><i class="bi bi-bar-chart-line me-1"></i>Evoluție lunară</span>
+        {% if not locatie_id %}
+        <select id="selLocatieTrend" class="form-select form-select-sm" style="width:220px;">
+            <option value="toate">Toate locațiile</option>
+            {% for r in rezultate %}
+            {% if r.venit > 0 or r.cost_marfa > 0 %}
+            <option value="{{ r.id }}">{{ r.nume }}</option>
+            {% endif %}
+            {% endfor %}
+        </select>
+        {% endif %}
+    </div>
+    <div class="card-body">
+        <canvas id="chartTrend" height="90"></canvas>
+    </div>
+</div>
+
+<!-- ===== TABEL PER LOCATIE ===== -->
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span class="fw-semibold">
+            {% if locatie_sel %}{{ locatie_sel.nume }}{% else %}Detaliu per locație{% endif %}
+            <span class="text-muted small fw-normal">(sortat după profit net)</span>
+        </span>
+        {% if not locatie_id %}
+        <input type="text" id="cautaTabel" class="form-control form-control-sm"
+               placeholder="Caută locație..." style="max-width:180px;" autocomplete="off">
+        {% endif %}
+    </div>
+    <div class="card-body p-0" style="overflow-x:auto;">
+        {% if not rezultate or (rezultate|selectattr('venit','gt',0)|list|length == 0 and rezultate|selectattr('cost_marfa','gt',0)|list|length == 0 and rezultate|selectattr('cost_angajati','gt',0)|list|length == 0) %}
+        <div class="text-center py-5 text-muted">
+            <i class="bi bi-bar-chart fs-1 d-block mb-2 opacity-25"></i>
+            Nu există date pentru filtrele selectate.
+        </div>
+        {% else %}
+        <table class="table table-hover mb-0" id="tabelProfit" style="min-width:900px;">
+            <thead class="table-light">
+                <tr>
+                    <th class="ps-3">#</th>
+                    <th>Locație</th>
+                    <th class="text-end">Venit (lei)</th>
+                    <th class="text-end">Cost marfă</th>
+                    <th class="text-end fw-semibold">Marjă brută</th>
+                    <th class="text-end text-muted">Marjă %</th>
+                    <th class="text-end">Cost angajați</th>
+                    <th class="text-end fw-bold">Profit net</th>
+                    <th class="text-end fw-bold">Profit %</th>
+                    <th class="text-center" style="width:130px;">Grafic profit</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% set max_profit = namespace(val=0.01) %}
+            {% for r in rezultate %}
+                {% if r.profit > max_profit.val %}{% set max_profit.val = r.profit %}{% endif %}
+            {% endfor %}
+            {% for r in rezultate %}
+            {% if r.venit > 0 or r.cost_marfa > 0 or r.cost_angajati > 0 %}
+            <tr class="loc-row" data-search="{{ r.nume|lower }}">
+                <td class="ps-3 text-muted small">{{ loop.index }}</td>
+                <td class="fw-semibold">{{ r.nume }}</td>
+                <td class="text-end">{{ "{:,.0f}".format(r.venit) }}</td>
+                <td class="text-end text-muted">{{ "{:,.0f}".format(r.cost_marfa) }}</td>
+                <td class="text-end fw-semibold {{ 'text-success' if r.marja_bruta >= 0 else 'text-danger' }}">
+                    {{ "{:,.0f}".format(r.marja_bruta) }}
+                </td>
+                <td class="text-end">
+                    <span class="badge {{ 'bg-success' if r.marja_pct >= 20 else 'bg-warning text-dark' if r.marja_pct >= 5 else 'bg-danger' }}">
+                        {{ "%.1f"|format(r.marja_pct) }}%
+                    </span>
+                </td>
+                <td class="text-end text-warning-emphasis">
+                    {% if r.cost_angajati > 0 %}
+                    {{ "{:,.0f}".format(r.cost_angajati) }}
+                    <span class="text-muted small">({{ r.nr_angajati }} ang.)</span>
+                    {% else %}<span class="text-muted">—</span>{% endif %}
+                </td>
+                <td class="text-end fw-bold {{ 'text-success' if r.profit >= 0 else 'text-danger' }}">
+                    {{ "{:,.0f}".format(r.profit) }}
+                </td>
+                <td class="text-end">
+                    <span class="badge {{ 'bg-success' if r.profit_pct >= 10 else 'bg-warning text-dark' if r.profit_pct >= 0 else 'bg-danger' }} fs-6">
+                        {{ "%.1f"|format(r.profit_pct) }}%
+                    </span>
+                </td>
+                <td>
+                    {% if r.profit > 0 %}
+                    <div class="progress" style="height:8px;">
+                        <div class="progress-bar bg-success" style="width:{{ [r.profit / max_profit.val * 100, 100]|min|int }}%"></div>
+                    </div>
+                    {% elif r.profit < 0 %}
+                    <div class="progress" style="height:8px;">
+                        <div class="progress-bar bg-danger" style="width:100%"></div>
+                    </div>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endif %}
+            {% endfor %}
+            </tbody>
+            <tfoot class="table-light fw-bold border-top">
+                <tr>
+                    <td colspan="2" class="ps-3">TOTAL</td>
+                    <td class="text-end">{{ "{:,.0f}".format(total_venit) }}</td>
+                    <td class="text-end">{{ "{:,.0f}".format(total_cost_marfa) }}</td>
+                    <td class="text-end {{ 'text-success' if total_marja >= 0 else 'text-danger' }}">{{ "{:,.0f}".format(total_marja) }}</td>
+                    <td class="text-end">
+                        <span class="badge {{ 'bg-success' if total_marja_pct >= 20 else 'bg-warning text-dark' if total_marja_pct >= 5 else 'bg-danger' }}">
+                            {{ "%.1f"|format(total_marja_pct) }}%
+                        </span>
+                    </td>
+                    <td class="text-end">{{ "{:,.0f}".format(total_cost_angajati) }}</td>
+                    <td class="text-end {{ 'text-success' if total_profit >= 0 else 'text-danger' }}">{{ "{:,.0f}".format(total_profit) }}</td>
+                    <td class="text-end">
+                        <span class="badge {{ 'bg-success' if total_profit_pct >= 10 else 'bg-warning text-dark' if total_profit_pct >= 0 else 'bg-danger' }}">
+                            {{ "%.1f"|format(total_profit_pct) }}%
+                        </span>
+                    </td>
+                    <td></td>
+                </tr>
+            </tfoot>
+        </table>
+        {% endif %}
+    </div>
+</div>
+
+<!-- ===== DETALIU SALARII (doar cand e selectata o locatie) ===== -->
+{% if locatie_id and sal_detalii %}
+<div class="card mb-4">
+    <div class="card-header fw-semibold">
+        <i class="bi bi-people me-1"></i>Costuri angajați — {{ locatie_sel.nume if locatie_sel }}
+    </div>
+    <div class="card-body p-0" style="overflow-x:auto;">
+        <table class="table table-sm table-hover mb-0" style="min-width:700px;">
+            <thead class="table-light">
+                <tr>
+                    <th class="ps-3">Angajat</th>
+                    <th class="text-center">Lună/An</th>
+                    <th class="text-end">Brut</th>
+                    <th class="text-end">CAM</th>
+                    <th class="text-end">Tichete</th>
+                    <th class="text-end">Bonusuri</th>
+                    <th class="text-end">Alte costuri</th>
+                    <th class="text-end fw-bold">Total angajator</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for s in sal_detalii %}
+            <tr>
+                <td class="ps-3 small">{{ s.nume }}</td>
+                <td class="text-center small text-muted">{{ '%02d'|format(s.luna) }}/{{ s.an }}</td>
+                <td class="text-end small">{{ "{:,.2f}".format(s.brut) }}</td>
+                <td class="text-end small text-muted">{{ "{:,.2f}".format(s.cam) }}</td>
+                <td class="text-end small text-muted">{{ "{:,.2f}".format(s.tichete) }}</td>
+                <td class="text-end small text-muted">{{ "{:,.2f}".format(s.bonusuri) }}</td>
+                <td class="text-end small text-muted">{{ "{:,.2f}".format(s.alte_costuri) }}</td>
+                <td class="text-end fw-semibold">{{ "{:,.2f}".format(s.cost_total) }}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+            <tfoot class="table-light fw-bold">
+                <tr>
+                    <td colspan="7" class="ps-3">TOTAL</td>
+                    <td class="text-end">{{ "{:,.2f}".format(sal_detalii|sum(attribute='cost_total')) }}</td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<!-- Nota metodologie -->
+<div class="alert alert-light border small text-muted">
+    <i class="bi bi-info-circle me-1"></i>
+    <strong>Metodologie:</strong>
+    Venit = vânzări Carrefour (fără TVA).
+    Cost marfă = intrări marfă (cantitate × preț unitar).
+    Marjă brută = Venit − Cost marfă.
+    Costuri angajați = salariu brut + CAM + tichete masă + bonusuri + alte costuri (cost total angajator).
+    Profit net = Marjă brută − Costuri angajați.
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+let chartTrend = null;
+
+function buildChart(data) {
+    const labels     = data.map(d => d.luna);
+    const venit      = data.map(d => d.venit);
+    const cost_marfa = data.map(d => d.cost_marfa);
+    const cost_ang   = data.map(d => d.cost_angajati);
+    const profit     = data.map(d => d.profit);
+
+    if (chartTrend) chartTrend.destroy();
+    chartTrend = new Chart(document.getElementById('chartTrend'), {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [
+                {
+                    label: 'Venit (lei)',
+                    data: venit,
+                    backgroundColor: 'rgba(13,110,253,0.45)',
+                    borderColor: '#0d6efd',
+                    borderWidth: 1,
+                    order: 3
+                },
+                {
+                    label: 'Cost marfă',
+                    data: cost_marfa,
+                    backgroundColor: 'rgba(108,117,125,0.35)',
+                    borderColor: '#6c757d',
+                    borderWidth: 1,
+                    order: 4
+                },
+                {
+                    label: 'Costuri angajați',
+                    data: cost_ang,
+                    backgroundColor: 'rgba(255,193,7,0.4)',
+                    borderColor: '#ffc107',
+                    borderWidth: 1,
+                    order: 5
+                },
+                {
+                    label: 'Profit net',
+                    data: profit,
+                    type: 'line',
+                    borderColor: '#198754',
+                    backgroundColor: 'rgba(25,135,84,0.08)',
+                    borderWidth: 2,
+                    pointRadius: 4,
+                    fill: false,
+                    tension: 0.3,
+                    order: 1
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { position: 'top' } },
+            scales: {
+                y: { ticks: { callback: v => v.toLocaleString('ro-RO') } }
+            }
+        }
+    });
+}
+
+function loadTrend(locatie_id) {
+    fetch('/analiza/api/profitabilitate_trend?locatie_id=' + (locatie_id || 'toate'))
+        .then(r => r.json())
+        .then(buildChart)
+        .catch(() => {});
+}
+
+{% if locatie_id %}
+loadTrend('{{ locatie_id }}');
+{% else %}
+const selLocatieTrend = document.getElementById('selLocatieTrend');
+if (selLocatieTrend) {
+    selLocatieTrend.addEventListener('change', function() { loadTrend(this.value); });
+}
+loadTrend('toate');
+{% endif %}
+
+// Search in table
+const cautaTabel = document.getElementById('cautaTabel');
+if (cautaTabel) {
+    cautaTabel.addEventListener('input', function() {
+        const q = this.value.toLowerCase();
+        document.querySelectorAll('.loc-row').forEach(r => {
+            r.style.display = r.dataset.search.includes(q) ? '' : 'none';
+        });
+    });
+}
+</script>
+{% endblock %}

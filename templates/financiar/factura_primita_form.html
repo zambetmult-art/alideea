@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+{% block title %}Factură Primită Nouă – ALIDEEA{% endblock %}
+{% block content %}
+<div class="d-flex align-items-center mb-3 gap-2">
+    <a href="{{ url_for('financiar.facturi_primite') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left"></i></a>
+    <h4 class="mb-0"><i class="bi bi-file-earmark-arrow-down me-2 text-warning"></i>Înregistrare Factură Primită</h4>
+</div>
+<div class="card border-0 shadow-sm" style="max-width:650px;">
+    <div class="card-body">
+        <form method="POST">
+            <div class="row g-3">
+                <div class="col-md-5">
+                    <label class="form-label fw-semibold">Nr. Factură <span class="text-danger">*</span></label>
+                    <input type="text" name="nr_factura" class="form-control" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Data facturii</label>
+                    <input type="date" name="data" class="form-control" value="{{ today }}" required>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">Scadentă</label>
+                    <input type="date" name="data_scadenta" class="form-control">
+                </div>
+            </div>
+            <div class="row g-3 mt-1">
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Furnizor</label>
+                    <select name="furnizor_id" class="form-select" onchange="toggleFurnizorLiber(this)">
+                        <option value="">— Furnizor liber —</option>
+                        {% for f in furnizori %}
+                        <option value="{{ f.id }}">{{ f.nume }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6" id="divFurnizorLiber">
+                    <label class="form-label fw-semibold">Furnizor (liber)</label>
+                    <input type="text" name="furnizor_liber" class="form-control" placeholder="Dacă nu e în listă">
+                </div>
+            </div>
+            <div class="row g-3 mt-1">
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Total fără TVA (lei)</label>
+                    <input type="number" name="total_fara_tva" class="form-control" step="0.01" value="0"
+                           oninput="calcTotal()" id="inpFara">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">TVA (lei)</label>
+                    <input type="number" name="tva" class="form-control" step="0.01" value="0"
+                           oninput="calcTotal()" id="inpTva">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Total cu TVA</label>
+                    <input type="text" class="form-control bg-light fw-bold" id="dispTotal" readonly value="0.00 lei">
+                </div>
+            </div>
+            <div class="mt-3">
+                <label class="form-label fw-semibold">Observații</label>
+                <textarea name="observatii" class="form-control" rows="2"></textarea>
+            </div>
+            <div class="mt-4 d-flex gap-2">
+                <button type="submit" class="btn btn-warning"><i class="bi bi-check-lg me-1"></i>Salvează</button>
+                <a href="{{ url_for('financiar.facturi_primite') }}" class="btn btn-outline-secondary">Anulează</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+function toggleFurnizorLiber(sel) {
+    document.getElementById('divFurnizorLiber').style.display = sel.value ? 'none' : '';
+}
+function calcTotal() {
+    const fara = parseFloat(document.getElementById('inpFara').value) || 0;
+    const tva  = parseFloat(document.getElementById('inpTva').value) || 0;
+    document.getElementById('dispTotal').value = (fara + tva).toFixed(2) + ' lei';
+}
+toggleFurnizorLiber(document.querySelector('[name=furnizor_id]'));
+</script>
+{% endblock %}

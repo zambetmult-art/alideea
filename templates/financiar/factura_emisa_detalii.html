@@ -1,0 +1,126 @@
+{% extends 'base.html' %}
+{% block title %}Factură {{ factura.nr_factura }} – ALIDEEA{% endblock %}
+{% block content %}
+<div class="d-flex align-items-center mb-3 gap-2 d-print-none">
+    <a href="{{ url_for('financiar.facturi_emise') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left"></i></a>
+    <h4 class="mb-0">Factură {{ factura.nr_factura }}</h4>
+    <div class="ms-auto d-flex gap-2">
+        <button onclick="window.print()" class="btn btn-sm btn-outline-secondary"><i class="bi bi-printer me-1"></i>Printează</button>
+        <form method="POST" action="{{ url_for('financiar.factura_emisa_status', id=factura.id) }}" class="d-inline">
+            <select name="status" class="form-select form-select-sm d-inline-block" style="width:130px;" onchange="this.form.submit()">
+                <option value="neplatita" {{ 'selected' if factura.status=='neplatita' }}>Neplatita</option>
+                <option value="partiala"  {{ 'selected' if factura.status=='partiala' }}>Partiala</option>
+                <option value="platita"   {{ 'selected' if factura.status=='platita' }}>Platita</option>
+            </select>
+        </form>
+    </div>
+</div>
+
+<!-- Factura printabila -->
+<div class="card border-0 shadow-sm" id="facturaPrint">
+    <div class="card-body p-4">
+        <!-- Header -->
+        <div class="row mb-4">
+            <div class="col-6">
+                <h5 class="fw-bold text-primary">{{ setari.get('firma_nume', 'Firma Mea') }}</h5>
+                <div class="small text-muted">
+                    {% if setari.get('firma_cui') %}CUI: {{ setari['firma_cui'] }}<br>{% endif %}
+                    {% if setari.get('firma_adresa') %}{{ setari['firma_adresa'] }}<br>{% endif %}
+                    {% if setari.get('firma_banca') %}Bancă: {{ setari['firma_banca'] }}<br>{% endif %}
+                    {% if setari.get('firma_iban') %}IBAN: {{ setari['firma_iban'] }}<br>{% endif %}
+                </div>
+            </div>
+            <div class="col-6 text-end">
+                <h3 class="fw-bold">FACTURĂ FISCALĂ</h3>
+                <h5 class="fw-bold text-primary">Nr. {{ factura.nr_factura }}</h5>
+                <div class="small">Data: <strong>{{ factura.data }}</strong></div>
+                {% if factura.data_scadenta %}
+                <div class="small">Scadentă: <strong>{{ factura.data_scadenta }}</strong></div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Client -->
+        <div class="row mb-4">
+            <div class="col-6">
+                <div class="border rounded p-3 bg-light">
+                    <div class="small text-muted fw-semibold mb-1">CUMPĂRĂTOR</div>
+                    <div class="fw-bold">{{ factura.client_nume or '—' }}</div>
+                    {% if factura.cui %}<div class="small">CUI: {{ factura.cui }}</div>{% endif %}
+                    {% if factura.reg_com %}<div class="small">Reg.Com: {{ factura.reg_com }}</div>{% endif %}
+                    {% if factura.client_adresa %}<div class="small">{{ factura.client_adresa }}</div>{% endif %}
+                    {% if factura.client_tel %}<div class="small">Tel: {{ factura.client_tel }}</div>{% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabel linii -->
+        <table class="table table-bordered table-sm mb-3">
+            <thead class="table-primary">
+                <tr>
+                    <th>#</th>
+                    <th>Denumire produs/serviciu</th>
+                    <th class="text-center">Cant.</th>
+                    <th class="text-end">Preț unitar</th>
+                    <th class="text-center">TVA%</th>
+                    <th class="text-end">Valoare</th>
+                    <th class="text-end">TVA</th>
+                    <th class="text-end">Total</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for l in linii %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td>{{ l.denumire }}</td>
+                <td class="text-center">{{ l.cantitate }}</td>
+                <td class="text-end">{{ "%.2f"|format(l.pret_unitar) }}</td>
+                <td class="text-center">{{ l.tva_proc|int }}%</td>
+                <td class="text-end">{{ "%.2f"|format(l.valoare) }}</td>
+                <td class="text-end">{{ "%.2f"|format(l.valoare * l.tva_proc / 100) }}</td>
+                <td class="text-end fw-semibold">{{ "%.2f"|format(l.valoare * (1 + l.tva_proc/100)) }}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+            <tfoot class="table-light">
+                <tr>
+                    <td colspan="5" class="text-end fw-semibold">Total fără TVA:</td>
+                    <td class="text-end fw-semibold" colspan="3">{{ "%.2f"|format(factura.total_fara_tva) }} lei</td>
+                </tr>
+                <tr>
+                    <td colspan="5" class="text-end fw-semibold">TVA:</td>
+                    <td class="text-end fw-semibold" colspan="3">{{ "%.2f"|format(factura.tva) }} lei</td>
+                </tr>
+                <tr class="table-success">
+                    <td colspan="5" class="text-end fw-bold fs-6">TOTAL DE PLATĂ:</td>
+                    <td class="text-end fw-bold fs-6" colspan="3">{{ "%.2f"|format(factura.total_cu_tva) }} lei</td>
+                </tr>
+            </tfoot>
+        </table>
+
+        {% if factura.observatii %}
+        <div class="alert alert-light border small">{{ factura.observatii }}</div>
+        {% endif %}
+
+        <!-- Semnaturi -->
+        <div class="row mt-4">
+            <div class="col-6 text-center">
+                <div class="border-top pt-2 small text-muted">Furnizor</div>
+            </div>
+            <div class="col-6 text-center">
+                <div class="border-top pt-2 small text-muted">Cumpărător</div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<style>
+@media print {
+    .d-print-none { display: none !important; }
+    .sidebar-desktop, .bottom-nav, nav.navbar { display: none !important; }
+    .main-content { margin: 0 !important; padding: 0 !important; }
+    .card { box-shadow: none !important; border: none !important; }
+}
+</style>
+{% endblock %}

@@ -1,0 +1,162 @@
+{% extends 'base.html' %}
+{% block title %}Factură Nouă – ALIDEEA{% endblock %}
+{% block content %}
+<div class="d-flex align-items-center mb-3 gap-2">
+    <a href="{{ url_for('financiar.facturi_emise') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left"></i></a>
+    <h4 class="mb-0"><i class="bi bi-file-earmark-plus me-2 text-primary"></i>Factură Nouă</h4>
+</div>
+<form method="POST" id="formFactura">
+<input type="hidden" name="linii_json" id="liniiJson" value="[]">
+<div class="row g-3">
+    <div class="col-md-8">
+        <!-- Date factura -->
+        <div class="card border-0 shadow-sm mb-3">
+            <div class="card-header bg-white fw-semibold">Date Factură</div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Nr. Factură <span class="text-danger">*</span></label>
+                        <input type="text" name="nr_factura" class="form-control" value="{{ nr_sugerat }}" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Data</label>
+                        <input type="date" name="data" class="form-control" value="{{ today }}" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Scadentă</label>
+                        <input type="date" name="data_scadenta" class="form-control">
+                    </div>
+                </div>
+                <div class="row g-3 mt-1">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Client</label>
+                        <select name="client_id" class="form-select" id="selectClient" onchange="toggleClientLiber()">
+                            <option value="">— Client liber —</option>
+                            {% for c in clienti %}
+                            <option value="{{ c.id }}">{{ c.nume }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6" id="divClientLiber">
+                        <label class="form-label fw-semibold">Nume client (liber)</label>
+                        <input type="text" name="client_liber" class="form-control" placeholder="Dacă nu e în listă">
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <label class="form-label fw-semibold">Observații</label>
+                    <textarea name="observatii" class="form-control" rows="2"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- Linii factura -->
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <span class="fw-semibold">Produse / Servicii</span>
+                <button type="button" class="btn btn-sm btn-outline-primary" onclick="adaugaLinie()">
+                    <i class="bi bi-plus-lg me-1"></i>Adaugă linie
+                </button>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-sm mb-0" id="tabelLinii">
+                    <thead class="table-light">
+                        <tr><th>Denumire</th><th style="width:80px">Cant.</th><th style="width:100px">Preț unit.</th><th style="width:70px">TVA%</th><th style="width:100px">Valoare</th><th style="width:40px"></th></tr>
+                    </thead>
+                    <tbody id="bodyLinii"></tbody>
+                    <tfoot>
+                        <tr class="table-light">
+                            <td colspan="4" class="text-end fw-semibold">Total fără TVA:</td>
+                            <td class="fw-semibold" id="totalFara">0.00</td><td></td>
+                        </tr>
+                        <tr class="table-light">
+                            <td colspan="4" class="text-end fw-semibold">TVA:</td>
+                            <td class="fw-semibold" id="totalTva">0.00</td><td></td>
+                        </tr>
+                        <tr class="table-success">
+                            <td colspan="4" class="text-end fw-bold">TOTAL:</td>
+                            <td class="fw-bold" id="totalCu">0.00</td><td></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <button type="submit" class="btn btn-success w-100 mb-2"><i class="bi bi-check-lg me-1"></i>Salvează Factura</button>
+                <a href="{{ url_for('financiar.facturi_emise') }}" class="btn btn-outline-secondary w-100">Anulează</a>
+            </div>
+        </div>
+    </div>
+</div>
+</form>
+{% endblock %}
+{% block scripts %}
+<script>
+let linii = [];
+
+function toggleClientLiber() {
+    const sel = document.getElementById('selectClient');
+    document.getElementById('divClientLiber').style.display = sel.value ? 'none' : '';
+}
+
+function adaugaLinie() {
+    const idx = linii.length;
+    linii.push({denumire:'', cantitate:1, pret_unitar:0, tva_proc:19, valoare:0});
+    const tbody = document.getElementById('bodyLinii');
+    const tr = document.createElement('tr');
+    tr.id = 'linie_' + idx;
+    tr.innerHTML = `
+        <td><input type="text" class="form-control form-control-sm" placeholder="Descriere" oninput="updateLinie(${idx},'denumire',this.value)"></td>
+        <td><input type="number" class="form-control form-control-sm" value="1" step="0.001" oninput="updateLinie(${idx},'cantitate',parseFloat(this.value)||0);calcLinie(${idx})"></td>
+        <td><input type="number" class="form-control form-control-sm" value="0" step="0.01" oninput="updateLinie(${idx},'pret_unitar',parseFloat(this.value)||0);calcLinie(${idx})"></td>
+        <td><select class="form-select form-select-sm" onchange="updateLinie(${idx},'tva_proc',parseFloat(this.value));calcLinie(${idx})">
+            <option value="19">19%</option><option value="9">9%</option><option value="5">5%</option><option value="0">0%</option>
+        </select></td>
+        <td><span id="val_${idx}" class="fw-semibold">0.00</span></td>
+        <td><button type="button" class="btn btn-sm btn-outline-danger" onclick="stergeLinie(${idx})"><i class="bi bi-x"></i></button></td>
+    `;
+    tbody.appendChild(tr);
+    recalcTotal();
+}
+
+function updateLinie(idx, field, val) { linii[idx][field] = val; }
+
+function calcLinie(idx) {
+    const l = linii[idx];
+    l.valoare = (l.cantitate * l.pret_unitar);
+    const el = document.getElementById('val_' + idx);
+    if (el) el.textContent = l.valoare.toFixed(2);
+    recalcTotal();
+}
+
+function stergeLinie(idx) {
+    const tr = document.getElementById('linie_' + idx);
+    if (tr) tr.remove();
+    linii[idx] = null;
+    recalcTotal();
+}
+
+function recalcTotal() {
+    let fara = 0, tva = 0;
+    linii.forEach(l => {
+        if (!l) return;
+        fara += l.valoare;
+        tva  += l.valoare * l.tva_proc / 100;
+    });
+    document.getElementById('totalFara').textContent = fara.toFixed(2);
+    document.getElementById('totalTva').textContent  = tva.toFixed(2);
+    document.getElementById('totalCu').textContent   = (fara + tva).toFixed(2);
+}
+
+document.getElementById('formFactura').addEventListener('submit', function() {
+    const active = linii.filter(l => l && l.denumire);
+    document.getElementById('liniiJson').value = JSON.stringify(active);
+});
+
+adaugaLinie();
+toggleClientLiber();
+</script>
+{% endblock %}

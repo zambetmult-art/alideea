@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}Stoc {{ locatie.nume }} — {{ data }}{% endblock %}
+{% block content %}
+
+<div class="page-header d-flex justify-content-between align-items-start flex-wrap gap-2">
+    <div>
+        <h4>
+            <i class="bi bi-boxes me-2 text-primary"></i>
+            Stoc — {{ locatie.nume }}
+            <span class="text-muted fw-normal fs-5">/ {{ data }}</span>
+        </h4>
+        <span class="text-muted">{{ produse|length }} produse înregistrate</span>
+    </div>
+    <div class="d-flex gap-2">
+        <form method="POST" action="/stoc/snapshot/{{ locatie.id }}/{{ data }}/sterge"
+              onsubmit="return confirm('Stergi definitiv acest stoc?')">
+            <button class="btn btn-outline-danger btn-sm" type="submit">
+                <i class="bi bi-trash3 me-1"></i>Sterge
+            </button>
+        </form>
+        <a href="/stoc/" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i>Înapoi
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span class="fw-semibold">Produse</span>
+        <input type="text" id="cautaProd" class="form-control form-control-sm"
+               placeholder="Caută produs..." style="max-width:220px;" autocomplete="off">
+    </div>
+    <div class="card-body p-0" style="overflow-x:auto;">
+        {% if not produse %}
+        <div class="text-center py-5 text-muted">Nu există produse pentru acest stoc.</div>
+        {% else %}
+        <table class="table table-hover mb-0" id="tabelProd">
+            <thead class="table-light">
+                <tr>
+                    <th class="ps-3" style="width:110px;">Cod</th>
+                    <th>Produs</th>
+                    <th style="width:140px;">Categorie</th>
+                    <th class="text-center" style="width:60px;">UM</th>
+                    <th class="text-end pe-3" style="width:120px;">Cantitate</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for p in produse %}
+            <tr class="prod-row" data-search="{{ p.denumire|lower }} {{ (p.cod_articol or '')|lower }}">
+                <td class="ps-3 text-muted small font-monospace">{{ p.cod_articol or '—' }}</td>
+                <td class="fw-semibold">{{ p.denumire }}</td>
+                <td><span class="badge bg-light text-dark border">{{ p.categorie or '—' }}</span></td>
+                <td class="text-center"><span class="badge bg-secondary">{{ p.unitate_masura }}</span></td>
+                <td class="text-end pe-3 fw-semibold {{ 'text-danger' if p.cantitate <= 0 else '' }}">
+                    {{ "%.3f"|format(p.cantitate) }}
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+document.getElementById('cautaProd').addEventListener('input', function() {
+    const q = this.value.toLowerCase();
+    document.querySelectorAll('.prod-row').forEach(r => {
+        r.style.display = r.dataset.search.includes(q) ? '' : 'none';
+    });
+});
+</script>
+{% endblock %}

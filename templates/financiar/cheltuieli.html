@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+{% block title %}Cheltuieli – ALIDEEA{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <h4 class="mb-0"><i class="bi bi-receipt me-2 text-danger"></i>Cheltuieli</h4>
+    <a href="{{ url_for('financiar.cheltuieli_adauga') }}" class="btn btn-danger">
+        <i class="bi bi-plus-lg me-1"></i>Cheltuială Nouă
+    </a>
+</div>
+
+<div class="card border-0 shadow-sm mb-3">
+    <div class="card-body py-2">
+        <form class="row g-2 align-items-end">
+            <div class="col-6 col-md-3">
+                <label class="form-label small mb-1">De la</label>
+                <input type="date" name="data_start" class="form-control form-control-sm" value="{{ data_start }}">
+            </div>
+            <div class="col-6 col-md-3">
+                <label class="form-label small mb-1">Până la</label>
+                <input type="date" name="data_end" class="form-control form-control-sm" value="{{ data_end }}">
+            </div>
+            <div class="col-6 col-md-3">
+                <label class="form-label small mb-1">Categorie</label>
+                <select name="categorie" class="form-select form-select-sm">
+                    <option value="">Toate</option>
+                    {% for cat in categorii %}
+                    <option value="{{ cat }}" {{ 'selected' if categorie_f==cat }}>{{ cat }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-6 col-md-3 d-flex gap-2">
+                <button class="btn btn-sm btn-danger flex-grow-1"><i class="bi bi-search me-1"></i>Filtrează</button>
+                <a href="{{ url_for('financiar.cheltuieli') }}" class="btn btn-sm btn-outline-secondary">Reset</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-0">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr><th>Data</th><th>Descriere</th><th>Categorie</th><th class="text-end">Sumă</th><th></th></tr>
+                    </thead>
+                    <tbody>
+                    {% for c in lista %}
+                    <tr>
+                        <td>{{ c.data }}</td>
+                        <td>{{ c.descriere }}</td>
+                        <td><span class="badge bg-secondary">{{ c.categorie }}</span></td>
+                        <td class="text-end fw-semibold">{{ "%.2f"|format(c.suma) }} lei</td>
+                        <td>
+                            <form method="POST" action="{{ url_for('financiar.cheltuiala_sterge', id=c.id) }}" class="d-inline"
+                                  onsubmit="return confirm('Stergi cheltuiala?')">
+                                <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="5" class="text-center text-muted py-4">Nicio cheltuială găsită</td></tr>
+                    {% endfor %}
+                    </tbody>
+                    {% if lista %}
+                    <tfoot class="table-light">
+                        <tr>
+                            <td colspan="3" class="fw-bold">TOTAL</td>
+                            <td class="text-end fw-bold">{{ "%.2f"|format(total) }} lei</td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                    {% endif %}
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white fw-semibold">Pe categorii</div>
+            <div class="card-body p-0">
+                <table class="table table-sm mb-0">
+                    {% for r in per_categ %}
+                    <tr>
+                        <td><span class="badge bg-secondary">{{ r.categorie }}</span></td>
+                        <td class="text-end fw-semibold">{{ "%.2f"|format(r.total) }} lei</td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="2" class="text-muted text-center py-3">—</td></tr>
+                    {% endfor %}
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

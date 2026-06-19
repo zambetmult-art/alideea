@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% block title %}Comanda CMD-{{ '%04d'|format(c.id) }}{% endblock %}
+{% block content %}
+
+{% set sl = status_labels[c.status] if c.status in status_labels else ('?','secondary') %}
+
+<div class="page-header d-flex justify-content-between align-items-start">
+    <div>
+        <a href="/comenzi/" class="text-muted text-decoration-none small">
+            <i class="bi bi-arrow-left me-1"></i>Inapoi la comenzi
+        </a>
+        <h4 class="mt-1 mb-0">
+            <i class="bi bi-cart3 me-2 text-primary"></i>
+            CMD-{{ '%04d'|format(c.id) }}
+            <span class="badge bg-{{ sl[1] }} ms-1" style="font-size:14px;">{{ sl[0] }}</span>
+        </h4>
+    </div>
+
+    <div class="d-flex gap-2 align-items-center">
+        <!-- Schimba status -->
+        {% if c.status in status_flow %}
+        {% set urm = status_flow[c.status] %}
+        {% set urm_label = status_labels[urm] %}
+        <form method="POST" action="/comenzi/{{ c.id }}/status">
+            <input type="hidden" name="status" value="{{ urm }}">
+            <button type="submit" class="btn btn-{{ urm_label[1] }}">
+                <i class="bi bi-arrow-right-circle me-1"></i>
+                Marcheaza "{{ urm_label[0] }}"
+            </button>
+        </form>
+        {% endif %}
+        {% if c.status not in ('livrata', 'anulata') %}
+        <form method="POST" action="/comenzi/{{ c.id }}/status"
+              onsubmit="return confirm('Anulezi aceasta comanda?')">
+            <input type="hidden" name="status" value="anulata">
+            <button type="submit" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-x-circle me-1"></i>Anuleaza
+            </button>
+        </form>
+        {% endif %}
+        {% if current_user.is_admin() and c.status == 'anulata' %}
+        <form method="POST" action="/comenzi/{{ c.id }}/sterge"
+              onsubmit="return confirm('Stergi definitiv aceasta comanda?')">
+            <button type="submit" class="btn btn-outline-danger btn-sm">
+                <i class="bi bi-trash me-1"></i>Sterge
+            </button>
+        </form>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Info comanda -->
+<div class="row g-3 mb-3">
+    <div class="col-md-3">
+        <div class="card h-100">
+            <div class="card-body py-3">
+                <div class="text-muted small mb-1">Locatie</div>
+                <div class="fw-semibold">
+                    <i class="bi bi-shop me-1 text-primary"></i>
+                    {{ c.locatie_nume or '—' }}
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card h-100">
+            <div class="card-body py-3">
+                <div class="text-muted small mb-1">Data comenzii</div>
+                <div class="fw-semibold">{{ c.data_comanda or c.created_at[:10] }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card h-100">
+            <div class="card-body py-3">
+                <div class="text-muted small mb-1">Nr produse</div>
+                <div class="fw-semibold fs-5">{{ produse|length }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card h-100">
+            <div class="card-body py-3">
+                <div class="text-muted small mb-1">Status</div>
+                <span class="badge bg-{{ sl[1] }} fs-6">{{ sl[0] }}</span>
+            </div>
+        </div>
+    </div>
+    {% if c.obs %}
+    <div class="col-md-3">
+        <div class="card h-100">
+            <div class="card-body py-3">
+                <div class="text-muted small mb-1">Observatii</div>
+                <div class="small">{{ c.obs }}</div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Sursa comanda -->
+{% if c.submisie_id %}
+<div class="alert alert-info py-2 mb-3" style="font-size:13px;">
+    <i class="bi bi-link-45deg me-1"></i>
+    Aceasta comanda a fost primita prin link de la magazin si aprobata de
+    <strong>{{ c.creat_de_nume or 'admin' }}</strong>.
+    <a href="/link-magazin/submisii/{{ c.submisie_id }}" class="ms-2">
+        Vezi submisia originala <i class="bi bi-arrow-right"></i>
+    </a>
+</div>
+{% endif %}
+
+<!-- Tabel produse -->
+<div class="card">
+    <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
+        <span>Produse comandate</span>
+        <input type="text" id="cautaP" class="form-control form-control-sm"
+               placeholder="Cauta produs..." style="max-width:220px;" autocomplete="off">
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-sm mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th class="ps-3" style="width:40px;">#</th>
+                    <th>Produs</th>
+                    <th class="text-center" style="width:60px;">UM</th>
+                    <th class="text-end pe-3" style="width:120px;">Cantitate</th>
+                </tr>
+            </thead>
+            <tbody id="tblProd">
+            {% for p in produse %}
+            <tr class="prod-row" data-den="{{ p.denumire|lower }}">
+                <td class="ps-3 text-muted small">{{ loop.index }}</td>
+                <td>{{ p.denumire }}</td>
+                <td class="text-center">
+                    <span class="badge bg-light text-secondary border">{{ p.unitate_masura }}</span>
+                </td>
+                <td class="text-end pe-3 fw-semibold">
+                    {{ '%g'|format(p.cantitate) }}
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="card-footer text-muted small">
+        Total: <strong>{{ produse|length }}</strong> produse,
+        cantitate totala: <strong>{{ '%g'|format(produse|sum(attribute='cantitate')) }}</strong>
+    </div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+document.getElementById('cautaP').addEventListener('input', function() {
+    const q = this.value.toLowerCase();
+    document.querySelectorAll('.prod-row').forEach(r => {
+        r.style.display = r.dataset.den.includes(q) ? '' : 'none';
+    });
+});
+</script>
+{% endblock %}

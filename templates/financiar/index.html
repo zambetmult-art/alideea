@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+{% block title %}Financiar – ALIDEEA{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <h4 class="mb-0"><i class="bi bi-cash-stack me-2 text-success"></i>Dashboard Financiar</h4>
+    <form class="d-flex gap-2 align-items-center">
+        <input type="month" name="luna" class="form-control form-control-sm" value="{{ luna }}" onchange="this.form.submit()">
+    </form>
+</div>
+
+<!-- Carduri sumare -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body text-center">
+                <div class="text-success fw-bold fs-5">{{ "%.2f"|format(venituri) }} lei</div>
+                <div class="text-muted small">Venituri luna</div>
+                <i class="bi bi-arrow-up-circle text-success fs-3 mt-1"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body text-center">
+                <div class="text-danger fw-bold fs-5">{{ "%.2f"|format(total_cheltuieli) }} lei</div>
+                <div class="text-muted small">Cheltuieli luna</div>
+                <i class="bi bi-arrow-down-circle text-danger fs-3 mt-1"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body text-center">
+                <div class="fw-bold fs-5 {{ 'text-success' if profit >= 0 else 'text-danger' }}">{{ "%.2f"|format(profit) }} lei</div>
+                <div class="text-muted small">Profit net luna</div>
+                <i class="bi bi-graph-up {{ 'text-success' if profit >= 0 else 'text-danger' }} fs-3 mt-1"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body text-center">
+                <div class="text-warning fw-bold fs-5">{{ neplatite_emise['nr'] }}</div>
+                <div class="text-muted small">Facturi neincasate</div>
+                <div class="small text-warning mt-1">{{ "%.2f"|format(neplatite_emise['total']) }} lei</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <!-- Facturi recente emise -->
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <span class="fw-semibold"><i class="bi bi-file-earmark-text me-2 text-primary"></i>Facturi Emise Recente</span>
+                <a href="{{ url_for('financiar.facturi_emise') }}" class="btn btn-sm btn-outline-primary">Vezi toate</a>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-sm table-hover mb-0">
+                    <thead class="table-light"><tr><th>Nr</th><th>Client</th><th>Total</th><th>Status</th></tr></thead>
+                    <tbody>
+                    {% for f in facturi_recente %}
+                    <tr>
+                        <td><a href="{{ url_for('financiar.factura_emisa_detalii', id=f.id) }}">{{ f.nr_factura }}</a></td>
+                        <td class="text-truncate" style="max-width:120px;">{{ f.client_nume or '—' }}</td>
+                        <td>{{ "%.2f"|format(f.total_cu_tva) }}</td>
+                        <td>
+                            {% if f.status == 'platita' %}<span class="badge bg-success">Platita</span>
+                            {% elif f.status == 'partiala' %}<span class="badge bg-warning text-dark">Partiala</span>
+                            {% else %}<span class="badge bg-danger">Neplatita</span>{% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="4" class="text-center text-muted py-3">Nicio factura</td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cheltuieli recente -->
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <span class="fw-semibold"><i class="bi bi-receipt me-2 text-danger"></i>Cheltuieli Recente</span>
+                <a href="{{ url_for('financiar.cheltuieli') }}" class="btn btn-sm btn-outline-danger">Vezi toate</a>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-sm table-hover mb-0">
+                    <thead class="table-light"><tr><th>Data</th><th>Descriere</th><th>Categ.</th><th>Suma</th></tr></thead>
+                    <tbody>
+                    {% for c in cheltuieli_recente %}
+                    <tr>
+                        <td>{{ c.data }}</td>
+                        <td class="text-truncate" style="max-width:120px;">{{ c.descriere }}</td>
+                        <td><span class="badge bg-secondary">{{ c.categorie }}</span></td>
+                        <td>{{ "%.2f"|format(c.suma) }}</td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="4" class="text-center text-muted py-3">Nicio cheltuiala</td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Alerte facturi neplatite -->
+{% if neplatite_primite['nr'] > 0 %}
+<div class="alert alert-warning mt-3 d-flex align-items-center gap-2">
+    <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+    <span>Ai <strong>{{ neplatite_primite['nr'] }}</strong> facturi de la furnizori neplatite în valoare de <strong>{{ "%.2f"|format(neplatite_primite['total']) }} lei</strong>.</span>
+    <a href="{{ url_for('financiar.facturi_primite') }}?status=neplatita" class="btn btn-sm btn-warning ms-auto">Vezi</a>
+</div>
+{% endif %}
+{% endblock %}

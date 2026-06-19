@@ -1,0 +1,210 @@
+{% extends "base.html" %}
+{% block title %}Comparatii Concurenta{% endblock %}
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-start flex-wrap gap-2">
+    <div>
+        <h4><i class="bi bi-bar-chart-line me-2 text-primary"></i>Comparatii Concurenta</h4>
+        <span class="text-muted">Analiza comparativa intre firme</span>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="/concurenta/" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i>Firme
+        </a>
+    </div>
+</div>
+
+{% if not firme %}
+<div class="card">
+    <div class="card-body text-center py-5 text-muted">
+        <i class="bi bi-bar-chart fs-1 d-block mb-2"></i>
+        Nu exista date. Adauga firme si cifre financiare mai intai.
+        <br><a href="/concurenta/" class="btn btn-primary mt-3">Mergi la Firme</a>
+    </div>
+</div>
+{% else %}
+
+<!-- Selector An -->
+<div class="card mb-3">
+    <div class="card-body py-2 d-flex align-items-center gap-3 flex-wrap">
+        <span class="fw-semibold">An:</span>
+        {% for an in ani %}
+        <a href="?an={{ an }}"
+           class="btn btn-sm {{ 'btn-primary' if an == an_selectat else 'btn-outline-secondary' }}">
+            {{ an }}
+        </a>
+        {% endfor %}
+        <span class="fw-semibold ms-3">Indicator:</span>
+        <select id="indicatorSel" class="form-select form-select-sm" style="max-width:200px">
+            <option value="ca">Cifra de Afaceri</option>
+            <option value="profit">Profit Net</option>
+            <option value="angajati">Numar Angajati</option>
+            <option value="locatii">Numar Locatii</option>
+        </select>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <!-- Grafic Bar -->
+    <div class="col-12 col-lg-7">
+        <div class="card h-100">
+            <div class="card-header fw-semibold"><i class="bi bi-bar-chart me-1"></i>Grafic Comparativ</div>
+            <div class="card-body">
+                <canvas id="chartBar" style="max-height:350px;"></canvas>
+            </div>
+        </div>
+    </div>
+    <!-- Grafic Linie evolutie -->
+    <div class="col-12 col-lg-5">
+        <div class="card h-100">
+            <div class="card-header fw-semibold"><i class="bi bi-graph-up me-1"></i>Evolutie in Timp</div>
+            <div class="card-body">
+                <canvas id="chartLine" style="max-height:350px;"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabel comparativ -->
+<div class="card">
+    <div class="card-header fw-semibold"><i class="bi bi-table me-1"></i>Tabel Comparativ — Toate Datele</div>
+    <div class="card-body p-0" style="overflow-x:auto;">
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th class="ps-3">Firma</th>
+                    <th class="text-center">An</th>
+                    <th class="text-end">Cifra Afaceri</th>
+                    <th class="text-end">Profit Net</th>
+                    <th class="text-center">Marja (%)</th>
+                    <th class="text-center">Angajati</th>
+                    <th class="text-center pe-3">Locatii</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for c in cifre %}
+            <tr>
+                <td class="ps-3 fw-semibold">{{ c.firma_nume }}</td>
+                <td class="text-center">{{ c.an }}</td>
+                <td class="text-end">
+                    {% if c.cifra_afaceri %}{{ "{:,.0f}".format(c.cifra_afaceri) }} Lei{% else %}-{% endif %}
+                </td>
+                <td class="text-end">
+                    {% if c.profit_net %}
+                    <span class="{{ 'text-success' if c.profit_net > 0 else 'text-danger' }}">
+                        {{ "{:,.0f}".format(c.profit_net) }} Lei
+                    </span>
+                    {% else %}-{% endif %}
+                </td>
+                <td class="text-center">
+                    {% if c.cifra_afaceri and c.cifra_afaceri > 0 and c.profit_net %}
+                    {% set marja = (c.profit_net / c.cifra_afaceri * 100) %}
+                    <span class="{{ 'text-success' if marja > 0 else 'text-danger' }}">
+                        {{ "%.1f"|format(marja) }}%
+                    </span>
+                    {% else %}-{% endif %}
+                </td>
+                <td class="text-center">{{ c.numar_angajati or '-' }}</td>
+                <td class="text-center pe-3">{{ c.numar_locatii or '-' }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="7" class="text-center py-4 text-muted">Nu exista date inregistrate.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+{% block scripts %}
+{% if firme %}
+<script>
+const DATA_CA = {{ data_ca|safe }};
+const DATA_PROFIT = {{ data_profit|safe }};
+const DATA_ANGAJATI = {{ data_angajati|safe }};
+const DATA_LOCATII = {{ data_locatii|safe }};
+const FIRME = {{ firme_nume|tojson }};
+const ANI = {{ ani|tojson }};
+
+const COLORS = [
+    '#0d6efd','#198754','#dc3545','#fd7e14','#6f42c1',
+    '#20c997','#0dcaf0','#ffc107','#6c757d','#d63384'
+];
+
+let chartBar = null, chartLine = null;
+
+function getDataMap(indicator) {
+    if (indicator === 'ca') return DATA_CA;
+    if (indicator === 'profit') return DATA_PROFIT;
+    if (indicator === 'angajati') return DATA_ANGAJATI;
+    return DATA_LOCATII;
+}
+
+function getLabel(indicator) {
+    if (indicator === 'ca') return 'Cifra de Afaceri (Lei)';
+    if (indicator === 'profit') return 'Profit Net (Lei)';
+    if (indicator === 'angajati') return 'Numar Angajati';
+    return 'Numar Locatii';
+}
+
+function buildCharts(indicator) {
+    const dataMap = getDataMap(indicator);
+    const label = getLabel(indicator);
+    const anSelectat = ANI[0] || null;
+
+    // BAR chart - ultimul an disponibil
+    const anBar = anSelectat;
+    const barData = dataMap[anBar] || {};
+    const barLabels = FIRME;
+    const barValues = FIRME.map(f => barData[f] || 0);
+
+    if (chartBar) chartBar.destroy();
+    const ctxBar = document.getElementById('chartBar').getContext('2d');
+    chartBar = new Chart(ctxBar, {
+        type: 'bar',
+        data: {
+            labels: barLabels,
+            datasets: [{
+                label: label + (anBar ? ' (' + anBar + ')' : ''),
+                data: barValues,
+                backgroundColor: COLORS.slice(0, barLabels.length),
+                borderRadius: 6,
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true } }
+        }
+    });
+
+    // LINE chart - evolutie per firma
+    if (chartLine) chartLine.destroy();
+    const ctxLine = document.getElementById('chartLine').getContext('2d');
+    const lineDatasets = FIRME.map((firma, i) => ({
+        label: firma,
+        data: ANI.slice().reverse().map(an => (dataMap[an] || {})[firma] || null),
+        borderColor: COLORS[i % COLORS.length],
+        backgroundColor: COLORS[i % COLORS.length] + '22',
+        tension: 0.3,
+        fill: false,
+        pointRadius: 4,
+    }));
+    chartLine = new Chart(ctxLine, {
+        type: 'line',
+        data: { labels: ANI.slice().reverse(), datasets: lineDatasets },
+        options: {
+            responsive: true,
+            plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } } },
+            scales: { y: { beginAtZero: true } }
+        }
+    });
+}
+
+document.getElementById('indicatorSel').addEventListener('change', function() {
+    buildCharts(this.value);
+});
+
+buildCharts('ca');
+</script>
+{% endif %}
+{% endblock %}

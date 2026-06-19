@@ -1,0 +1,290 @@
+{% extends "base.html" %}
+{% block title %}Inventar Calculat — {{ inv.locatie_nume }}{% endblock %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+    <div>
+        <h4 class="mb-0">
+            <i class="bi bi-clipboard-check me-2 text-primary"></i>
+            Inventar — {{ inv.locatie_nume }}
+        </h4>
+        <span class="text-muted small">{{ inv.observatii }}</span>
+    </div>
+    <div class="d-flex gap-2 align-items-center flex-wrap">
+        <span id="save-status" class="badge bg-success" style="display:none;">
+            <i class="bi bi-check-circle me-1"></i>Salvat automat
+        </span>
+        <a href="/inventar/import-stoc/initial/{{ inv.id }}"
+           class="btn btn-primary btn-sm">
+            <i class="bi bi-file-earmark-excel me-1"></i>Import Stoc Initial
+        </a>
+        <a href="/inventar/import-stoc/curent/{{ inv.id }}"
+           class="btn btn-info btn-sm text-white">
+            <i class="bi bi-file-earmark-excel me-1"></i>Import Stoc Curent
+        </a>
+        <a href="/inventar/calcul" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-repeat me-1"></i>Calcul nou
+        </a>
+    </div>
+</div>
+
+<div class="alert alert-info py-2 px-3 mb-3" style="font-size:11px;">
+    <i class="bi bi-info-circle me-1"></i>
+    <strong class="text-primary">Stoc Initial</strong> = introduci tu (stocul fizic la inceputul perioadei) &nbsp;|&nbsp;
+    <strong class="text-success">Intrari</strong> = preluate automat din baza de date &nbsp;|&nbsp;
+    <strong class="text-danger">Iesiri</strong> = vanzari + pierderi (preluate automat) &nbsp;|&nbsp;
+    <strong>Scriptic</strong> = Stoc Initial + Intrari − Iesiri &nbsp;|&nbsp;
+    <strong class="text-info">Stoc Curent</strong> = introduci tu (stocul fizic la sfarsitul perioadei) &nbsp;|&nbsp;
+    <strong>Diferenta</strong> = Stoc Curent − Scriptic
+    <br><i class="bi bi-save me-1 mt-1"></i>
+    <em>Stoc Initial si Stoc Curent se salveaza automat la fiecare modificare.</em>
+</div>
+
+<!-- SUMAR -->
+<div class="row g-2 mb-3">
+    <div class="col">
+        <div class="card border-primary border text-center py-2">
+            <div class="fw-bold text-primary fs-6" id="sum-initial">—</div>
+            <div class="text-muted" style="font-size:10px;">STOC INITIAL</div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card border-0 text-center py-2" style="background:#e8f5e9;">
+            <div class="fw-bold text-success" id="sum-intrari">—</div>
+            <div class="text-muted" style="font-size:10px;">INTRARI</div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card border-0 text-center py-2" style="background:#fce4ec;">
+            <div class="fw-bold text-danger" id="sum-iesiri">—</div>
+            <div class="text-muted" style="font-size:10px;">IESIRI</div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card border-0 bg-light text-center py-2">
+            <div class="fw-bold" id="sum-scriptic">—</div>
+            <div class="text-muted" style="font-size:10px;">SCRIPTIC</div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card border-info border text-center py-2">
+            <div class="fw-bold text-info fs-6" id="sum-curent">—</div>
+            <div class="text-muted" style="font-size:10px;">STOC CURENT</div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card border-0 text-center py-2" id="card-dif">
+            <div class="fw-bold fs-6" id="sum-diferenta">—</div>
+            <div class="text-muted" style="font-size:10px;">DIFERENTA</div>
+        </div>
+    </div>
+</div>
+
+<!-- TABEL -->
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-0" style="overflow-x:auto;">
+        <table class="table table-sm table-hover mb-0" id="tabelCalc"
+               style="min-width:900px; font-size:12px;">
+            <thead>
+                <tr>
+                    <th class="ps-3 align-middle bg-white border-end"
+                        style="min-width:160px; position:sticky; left:0; z-index:2;">Produs</th>
+                    <th class="text-center align-middle" style="width:45px;">UM</th>
+                    <th class="text-end align-middle" style="width:120px; background:#e8eaf6;">
+                        <span class="text-primary fw-semibold">Stoc Initial</span>
+                        <div class="fw-normal text-muted" style="font-size:9px;">introduci tu</div>
+                    </th>
+                    <th class="text-end align-middle" style="width:105px;">
+                        <span class="text-success">Intrari</span>
+                        <div class="fw-normal text-muted" style="font-size:9px;">din baza de date</div>
+                    </th>
+                    <th class="text-end align-middle" style="width:105px;">
+                        <span class="text-danger">Iesiri</span>
+                        <div class="fw-normal text-muted" style="font-size:9px;">vanzari+pierderi</div>
+                    </th>
+                    <th class="text-end align-middle" style="width:105px;">
+                        Scriptic
+                        <div class="fw-normal text-muted" style="font-size:9px;">SI + Intr − Ies</div>
+                    </th>
+                    <th class="text-end align-middle pe-0" style="width:125px; background:#e3f2fd;">
+                        <span class="text-info fw-semibold">Stoc Curent</span>
+                        <div class="fw-normal text-muted" style="font-size:9px;">introduci tu</div>
+                    </th>
+                    <th class="text-end align-middle pe-3" style="width:100px;">
+                        Diferenta
+                        <div class="fw-normal text-muted" style="font-size:9px;">Curent − Scriptic</div>
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for d in detalii %}
+            <tr class="calc-row"
+                data-det-id="{{ d.id }}"
+                data-intr="{{ d.intrari or 0 }}"
+                data-ies="{{ d.cantitate_sistem or 0 }}">
+                <td class="ps-3 fw-semibold bg-white border-end"
+                    style="position:sticky; left:0; z-index:1;">{{ d.denumire }}</td>
+                <td class="text-center text-muted">{{ d.unitate_masura }}</td>
+
+                <!-- STOC INITIAL — editabil -->
+                <td class="text-end" style="background:#eef0fb;">
+                    <input type="number"
+                           class="form-control form-control-sm text-end inp-initial"
+                           value="{{ '%.3f'|format(d.stoc_initial) if d.stoc_initial else '' }}"
+                           step="0.001" min="0" placeholder="0.000"
+                           style="width:100px; display:inline-block; font-size:12px;
+                                  border:2px solid #3f51b5;">
+                </td>
+
+                <!-- INTRARI — automat -->
+                <td class="text-end text-success fw-semibold">
+                    {{ "%.3f"|format(d.intrari or 0) }}
+                </td>
+
+                <!-- IESIRI — automat -->
+                <td class="text-end text-danger">
+                    {{ "%.3f"|format(d.cantitate_sistem or 0) }}
+                </td>
+
+                <!-- SCRIPTIC — calculat live -->
+                <td class="text-end fw-semibold scriptic-val">
+                    {{ "%.3f"|format(d.scriptic) }}
+                </td>
+
+                <!-- STOC CURENT — editabil -->
+                <td class="text-end pe-0" style="background:#e8f4fd;">
+                    <input type="number"
+                           class="form-control form-control-sm text-end inp-curent"
+                           value="{{ '%.3f'|format(d.cantitate_fizica) if d.cantitate_fizica else '' }}"
+                           step="0.001" min="0" placeholder="0.000"
+                           style="width:100px; display:inline-block; font-size:12px;
+                                  border:2px solid #0dcaf0;">
+                </td>
+
+                <!-- DIFERENTA — calculat live -->
+                <td class="text-end pe-3 fw-semibold diferenta-val">
+                    {% if d.cantitate_fizica or d.stoc_initial %}
+                        <span class="{{ 'text-danger' if d.diferenta < 0 else 'text-success' if d.diferenta > 0 else 'text-muted' }}">
+                            {{ "%.3f"|format(d.diferenta) }}
+                        </span>
+                    {% else %}
+                        <span class="text-muted">—</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="8" class="text-center py-5 text-muted">
+                    <i class="bi bi-clipboard-x fs-3 d-block mb-2"></i>
+                    Nicio miscare gasita pentru acest interval.
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+const STATUS = document.getElementById('save-status');
+let statusTimer = null;
+
+function showSaved() {
+    STATUS.style.display = 'inline';
+    clearTimeout(statusTimer);
+    statusTimer = setTimeout(() => { STATUS.style.display = 'none'; }, 2500);
+}
+
+function calcScriptic(row) {
+    const si   = parseFloat(row.querySelector('.inp-initial').value) || 0;
+    const intr = parseFloat(row.dataset.intr) || 0;
+    const ies  = parseFloat(row.dataset.ies)  || 0;
+    return Math.round((si + intr - ies) * 1000) / 1000;
+}
+
+function updateRow(row) {
+    const scr  = calcScriptic(row);
+    const curent = parseFloat(row.querySelector('.inp-curent').value);
+    const tdScr = row.querySelector('.scriptic-val');
+    const tdDif = row.querySelector('.diferenta-val');
+
+    tdScr.textContent = scr.toFixed(3);
+
+    if (!isNaN(curent) && row.querySelector('.inp-curent').value.trim() !== '') {
+        const dif = Math.round((curent - scr) * 1000) / 1000;
+        const cls = dif < 0 ? 'text-danger' : dif > 0 ? 'text-success' : 'text-muted';
+        tdDif.innerHTML = `<span class="${cls}">${dif.toFixed(3)}</span>`;
+    } else {
+        tdDif.innerHTML = '<span class="text-muted">—</span>';
+    }
+    updateSumar();
+}
+
+function updateSumar() {
+    let si = 0, intr = 0, ies = 0, scr = 0, cur = 0, dif = 0;
+    let hasSI = false, hasCur = false;
+
+    document.querySelectorAll('.calc-row').forEach(row => {
+        const siV  = parseFloat(row.querySelector('.inp-initial').value) || 0;
+        const curV = parseFloat(row.querySelector('.inp-curent').value)  || 0;
+        const intrV = parseFloat(row.dataset.intr) || 0;
+        const iesV  = parseFloat(row.dataset.ies)  || 0;
+        const scrV  = Math.round((siV + intrV - iesV) * 1000) / 1000;
+
+        if (row.querySelector('.inp-initial').value.trim()) hasSI = true;
+        if (row.querySelector('.inp-curent').value.trim())  hasCur = true;
+
+        si   += siV;
+        intr += intrV;
+        ies  += iesV;
+        scr  += scrV;
+        cur  += curV;
+        dif  += curV - scrV;
+    });
+
+    if (hasSI) {
+        document.getElementById('sum-initial').textContent  = si.toFixed(3);
+        document.getElementById('sum-scriptic').textContent = scr.toFixed(3);
+    }
+    document.getElementById('sum-intrari').textContent = intr.toFixed(3);
+    document.getElementById('sum-iesiri').textContent  = ies.toFixed(3);
+    if (hasCur) {
+        document.getElementById('sum-curent').textContent = cur.toFixed(3);
+        const el = document.getElementById('sum-diferenta');
+        el.textContent = dif.toFixed(3);
+        el.className   = 'fw-bold fs-6 ' + (dif < 0 ? 'text-danger' : dif > 0 ? 'text-success' : 'text-muted');
+    }
+}
+
+// Auto-save cu debounce 800ms
+document.querySelectorAll('.calc-row').forEach(row => {
+    const detId = row.dataset.detId;
+
+    function autoSave(field, endpoint) {
+        let timer = null;
+        field.addEventListener('input', function() {
+            updateRow(row);
+            clearTimeout(timer);
+            timer = setTimeout(() => {
+                const val = parseFloat(this.value) || 0;
+                fetch(`/inventar/${endpoint}/${detId}`, {
+                    method:  'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body:    JSON.stringify({val: val})
+                })
+                .then(r => r.json())
+                .then(d => { if (d.ok) showSaved(); });
+            }, 800);
+        });
+    }
+
+    autoSave(row.querySelector('.inp-initial'), 'update-initial');
+    autoSave(row.querySelector('.inp-curent'),  'update-fizic');
+});
+
+updateSumar();
+</script>
+{% endblock %}

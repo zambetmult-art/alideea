@@ -1,0 +1,335 @@
+{% extends "base.html" %}
+{% block title %}Comenzi{% endblock %}
+{% block content %}
+
+<div class="page-header d-flex justify-content-between align-items-start flex-wrap gap-2">
+    <div>
+        <h4><i class="bi bi-cart3 me-2 text-primary"></i>Comenzi magazine</h4>
+        <span class="text-muted">Comenzile primite de la magazine</span>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="/comenzi/export?{{ request.query_string.decode() }}" class="btn btn-success">
+            <i class="bi bi-file-earmark-excel me-1"></i>Export Excel
+        </a>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalAdauga">
+            <i class="bi bi-plus-circle me-1"></i>Comanda nouă
+        </button>
+    </div>
+</div>
+
+<!-- SECTIUNEA DE VALIDAT -->
+{% if pending %}
+<div class="mb-4">
+    <div class="d-flex align-items-center gap-2 mb-2">
+        <h6 class="mb-0 fw-bold text-warning">
+            <i class="bi bi-clock-history me-1"></i>De validat
+        </h6>
+        <span class="badge bg-warning text-dark">{{ pending|length }}</span>
+    </div>
+
+    <div class="row g-3">
+    {% for s in pending %}
+    <div class="col-md-6 col-xl-4">
+        <div class="card border-warning border-2 h-100">
+            <div class="card-header bg-warning bg-opacity-10 d-flex justify-content-between align-items-center py-2">
+                <div>
+                    <i class="bi bi-shop me-1 text-primary"></i>
+                    <strong>{{ s.locatie_nume or '—' }}</strong>
+                </div>
+                <small class="text-muted">{{ s.data_submisie[:16] if s.data_submisie }}</small>
+            </div>
+            <div class="card-body py-2 px-3">
+                <p class="mb-2 small text-muted">
+                    <i class="bi bi-box-seam me-1"></i>{{ s.nr_produse }} produse
+                    {% if s.obs_magazin %}
+                    <br><i class="bi bi-chat-left-text me-1 mt-1"></i>{{ s.obs_magazin }}
+                    {% endif %}
+                </p>
+                <!-- Produse preview -->
+                <div id="preview_{{ s.id }}" class="d-none mb-2">
+                    <div style="max-height:160px; overflow-y:auto; font-size:12px;"
+                         class="border rounded p-2 bg-light" id="listaPrev_{{ s.id }}">
+                        <span class="text-muted">Se incarca...</span>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-link btn-sm p-0 text-muted mb-2"
+                        onclick="togglePreview({{ s.id }})">
+                    <i class="bi bi-eye me-1"></i><span id="lblPrev_{{ s.id }}">Vezi produse</span>
+                </button>
+            </div>
+            <div class="card-footer bg-transparent py-2 px-3 d-flex gap-2">
+                <!-- Aprobare -->
+                <form method="POST" action="/comenzi/valideaza/{{ s.id }}" class="flex-fill">
+                    <input type="hidden" name="obs_admin" value="">
+                    <button type="submit" class="btn btn-success btn-sm w-100">
+                        <i class="bi bi-check-circle me-1"></i>Aprobă
+                    </button>
+                </form>
+                <!-- Respingere -->
+                <button type="button" class="btn btn-outline-danger btn-sm"
+                        data-bs-toggle="collapse" data-bs-target="#resp_{{ s.id }}">
+                    <i class="bi bi-x-circle"></i>
+                </button>
+            </div>
+            <!-- Form respingere (expandabil) -->
+            <div class="collapse" id="resp_{{ s.id }}">
+                <form method="POST" action="/comenzi/respinge/{{ s.id }}"
+                      class="p-3 border-top">
+                    <textarea name="obs_admin" class="form-control form-control-sm mb-2"
+                              rows="2" placeholder="Motiv respingere (opțional)..."></textarea>
+                    <button type="submit" class="btn btn-danger btn-sm w-100">
+                        <i class="bi bi-x-circle me-1"></i>Confirmă respingere
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+    </div>
+</div>
+<hr>
+{% endif %}
+
+<!-- FILTRE -->
+<div class="card mb-3">
+    <div class="card-body py-2">
+        <form method="GET" action="/comenzi/" class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label small mb-1">Locație</label>
+                <select name="locatie_id" class="form-select form-select-sm">
+                    <option value="">Toate locațiile</option>
+                    {% for l in locatii %}
+                    <option value="{{ l.id }}" {{ 'selected' if filters.locatie_id == l.id|string }}>
+                        {{ l.nume }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small mb-1">Status</label>
+                <select name="status" class="form-select form-select-sm">
+                    <option value="toate" {{ 'selected' if filters.status == 'toate' }}>Toate</option>
+                    {% for s, (label, _) in status_labels.items() %}
+                    <option value="{{ s }}" {{ 'selected' if filters.status == s }}>
+                        {{ label }} ({{ counts[s] }})
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small mb-1">De la data</label>
+                <input type="date" name="data_de" class="form-control form-control-sm"
+                       value="{{ filters.data_de }}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small mb-1">Până la</label>
+                <input type="date" name="data_pana" class="form-control form-control-sm"
+                       value="{{ filters.data_pana }}">
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary btn-sm w-100">
+                    <i class="bi bi-funnel me-1"></i>Filtrează
+                </button>
+            </div>
+            <div class="col-md-1">
+                <a href="/comenzi/" class="btn btn-outline-secondary btn-sm w-100" title="Resetează">
+                    <i class="bi bi-x-circle"></i>
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- TABEL COMENZI APROBATE -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span class="fw-semibold">
+            {{ comenzi|length }} comenzi aprobate
+            {% if filters.status != 'toate' and filters.status in status_labels %}
+            — {{ status_labels[filters.status][0] }}
+            {% endif %}
+        </span>
+        <input type="text" id="cautaTabel" class="form-control form-control-sm"
+               placeholder="Caută..." style="max-width:200px;" autocomplete="off">
+    </div>
+    <div class="card-body p-0">
+        {% if not comenzi %}
+        <div class="text-center py-5 text-muted">
+            <i class="bi bi-cart-x fs-1 d-block mb-2 opacity-25"></i>
+            Nu există comenzi pentru filtrele selectate.
+        </div>
+        {% else %}
+        <div style="overflow-x:auto;">
+        <table class="table table-hover mb-0" id="tabelComenzi">
+            <thead class="table-light">
+                <tr>
+                    <th class="ps-3" style="width:100px;">Comandă</th>
+                    <th>Locație</th>
+                    <th style="width:120px;">Data</th>
+                    <th class="text-center" style="width:90px;">Produse</th>
+                    <th class="text-center" style="width:120px;">Status</th>
+                    <th class="text-center pe-3" style="width:80px;"></th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for c in comenzi %}
+            {% set sl = status_labels[c.status] if c.status in status_labels else ('?','secondary') %}
+            <tr class="cmd-row" data-search="{{ c.locatie_nume|lower }} {{ c.data_comanda }}">
+                <td class="ps-3 font-monospace text-muted small fw-semibold">
+                    CMD-{{ '%04d'|format(c.id) }}
+                </td>
+                <td><i class="bi bi-shop me-1 text-muted"></i>{{ c.locatie_nume or '—' }}</td>
+                <td class="small">{{ c.data_comanda or c.created_at[:10] }}</td>
+                <td class="text-center small">{{ c.nr_produse }}</td>
+                <td class="text-center">
+                    <span class="badge bg-{{ sl[1] }}">{{ sl[0] }}</span>
+                </td>
+                <td class="text-center pe-3">
+                    <a href="/comenzi/{{ c.id }}" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-eye"></i>
+                    </a>
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal adauga comanda manuala -->
+<div class="modal fade" id="modalAdauga" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-cart-plus me-2"></i>Comanda nouă</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="/comenzi/adauga">
+                <div class="modal-body">
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-5">
+                            <label class="form-label">Locație <span class="text-danger">*</span></label>
+                            <select name="locatie_id" class="form-select" required>
+                                <option value="">— selectează —</option>
+                                {% for l in locatii %}
+                                <option value="{{ l.id }}">{{ l.nume }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Data comenzii</label>
+                            <input type="date" name="data_comanda" class="form-control"
+                                   value="{{ today }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Observații</label>
+                            <input type="text" name="obs" class="form-control" placeholder="opțional">
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <input type="text" id="cautaProdModal" class="form-control form-control-sm"
+                               placeholder="Caută produs..." style="max-width:240px;" autocomplete="off">
+                        <span class="badge bg-success ms-auto" id="nrProdModal" style="display:none;"></span>
+                    </div>
+                    <div style="max-height:420px; overflow-y:auto; border:1px solid #dee2e6; border-radius:6px;">
+                        <table class="table table-sm mb-0">
+                            <thead class="table-light sticky-top">
+                                <tr>
+                                    <th class="ps-3">Produs</th>
+                                    <th class="text-center" style="width:55px;">UM</th>
+                                    <th class="text-end pe-3" style="width:130px;">Cantitate</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            {% for p in produse %}
+                            <tr class="prod-modal-row" data-den="{{ p.denumire|lower }}">
+                                <td class="ps-3 small">{{ p.denumire }}</td>
+                                <td class="text-center">
+                                    <span class="badge bg-light text-secondary border">{{ p.unitate_masura }}</span>
+                                </td>
+                                <td class="text-end pe-3">
+                                    <input type="number" name="cant_{{ p.id }}"
+                                           class="form-control form-control-sm text-end cant-modal"
+                                           min="0" step="0.001" placeholder="0"
+                                           style="width:110px; display:inline-block;"
+                                           oninput="updateNrProd()">
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Anulează</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-circle me-1"></i>Salvează comanda
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+// Cauta in tabel
+document.getElementById('cautaTabel').addEventListener('input', function() {
+    const q = this.value.toLowerCase();
+    document.querySelectorAll('.cmd-row').forEach(r => {
+        r.style.display = r.dataset.search.includes(q) ? '' : 'none';
+    });
+});
+
+// Cauta produs in modal
+document.getElementById('cautaProdModal').addEventListener('input', function() {
+    const q = this.value.toLowerCase();
+    document.querySelectorAll('.prod-modal-row').forEach(r => {
+        r.style.display = r.dataset.den.includes(q) ? '' : 'none';
+    });
+});
+
+function updateNrProd() {
+    const cnt = Array.from(document.querySelectorAll('.cant-modal'))
+        .filter(i => parseFloat(i.value) > 0).length;
+    const badge = document.getElementById('nrProdModal');
+    badge.style.display = cnt > 0 ? '' : 'none';
+    badge.textContent = cnt + ' produse selectate';
+}
+
+// Preview produse per submisie
+const previewCache = {};
+function togglePreview(subId) {
+    const div = document.getElementById('preview_' + subId);
+    const lbl = document.getElementById('lblPrev_' + subId);
+    if (div.classList.contains('d-none')) {
+        div.classList.remove('d-none');
+        lbl.textContent = 'Ascunde produse';
+        if (!previewCache[subId]) {
+            fetch('/comenzi/preview-submisie/' + subId)
+                .then(r => r.json())
+                .then(data => {
+                    previewCache[subId] = true;
+                    const lista = document.getElementById('listaPrev_' + subId);
+                    if (data.length === 0) {
+                        lista.innerHTML = '<span class="text-muted">Niciun produs.</span>';
+                    } else {
+                        lista.innerHTML = data.map(p =>
+                            `<div class="d-flex justify-content-between py-1 border-bottom">
+                                <span>${p.denumire}</span>
+                                <span class="fw-semibold">${p.cantitate} ${p.um}</span>
+                            </div>`
+                        ).join('');
+                    }
+                });
+        }
+    } else {
+        div.classList.add('d-none');
+        lbl.textContent = 'Vezi produse';
+    }
+}
+</script>
+{% endblock %}

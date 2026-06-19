@@ -11,3 +11,11 @@ uploads/
 static/delegatii_generate/
 static/template_delegatie.docx
 static/test_delegatie.docx
+*.log
+*.pid
+flask_out.txt
+flask_err.txt
+_temp_task.py
+static/template_delegatie.docx.bak
+telegram_bot.py
+run_bot.py

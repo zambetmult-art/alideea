@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+{% block title %}Import Stoc Saptamanal (Excel Matrice){% endblock %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+    <div>
+        <h4 class="mb-0">
+            <i class="bi bi-file-earmark-excel me-2 text-success"></i>
+            Import Stoc Saptamanal din Excel
+        </h4>
+        <span class="text-muted small">
+            Format matrice: rand 1 = locatii, coloana A = produse, restul = cantitati per locatie
+        </span>
+    </div>
+    <a href="/stoc/" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left me-1"></i>Inapoi la stoc
+    </a>
+</div>
+
+<div class="alert alert-info py-2 px-3 mb-3" style="font-size:12px;">
+    <i class="bi bi-info-circle me-1"></i>
+    <strong>Format Excel acceptat:</strong>
+    Randul 1 = nume locatii (col B, C, D...) &nbsp;|&nbsp;
+    Coloana A = denumire produs (cu sau fara nr. prefix) &nbsp;|&nbsp;
+    Celulele = cantitate stoc per locatie &nbsp;|&nbsp;
+    Fisiere acceptate: <strong>.xlsx</strong>
+</div>
+
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+        <form method="POST" enctype="multipart/form-data" id="formImport">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Selecteaza fisier Excel (.xlsx)</label>
+                    <input type="file" name="fisier" id="fisierInput"
+                           class="form-control" accept=".xlsx,.xls" required>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">
+                        Data stoc
+                        <span class="text-muted fw-normal small">(pt. stocuri din urmă)</span>
+                    </label>
+                    <input type="date" name="data_stoc" class="form-control"
+                           value="{{ today }}" max="{{ today }}">
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-success w-100">
+                        <i class="bi bi-file-earmark-excel me-1"></i>Importă Stoc
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if importat %}
+
+<!-- SUMAR SUCCESS -->
+<div class="row g-3 mb-3">
+    <div class="col-auto">
+        <div class="card border-success border text-center px-4 py-2">
+            <div class="fw-bold text-success fs-3">{{ nr_importate }}</div>
+            <div class="text-muted small">Randuri importate</div>
+        </div>
+    </div>
+    {% set loc_ok = loc_mapping | selectattr('db') | list %}
+    {% set loc_nok = loc_mapping | rejectattr('db') | list %}
+    <div class="col-auto">
+        <div class="card border-0 text-center px-4 py-2" style="background:#e8f5e9;">
+            <div class="fw-bold text-success fs-3">{{ loc_ok | length }}</div>
+            <div class="text-muted small">Locatii potrivite</div>
+        </div>
+    </div>
+    {% if unmatched_produse %}
+    <div class="col-auto">
+        <div class="card border-danger border text-center px-4 py-2">
+            <div class="fw-bold text-danger fs-3">{{ unmatched_produse | length }}</div>
+            <div class="text-muted small">Produse nepotrivite</div>
+        </div>
+    </div>
+    {% endif %}
+    <div class="col-auto d-flex align-items-center">
+        <span class="badge bg-success fs-6 px-3 py-2">
+            <i class="bi bi-check-circle me-1"></i>Importat cu succes
+        </span>
+    </div>
+</div>
+
+<div class="row g-3">
+
+    <!-- MAPARE LOCATII -->
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-primary text-white py-2">
+                <i class="bi bi-geo-alt me-1"></i>
+                Mapare locatii Excel → Baza de date
+            </div>
+            <div class="card-body p-0" style="max-height:400px; overflow-y:auto;">
+                <table class="table table-sm mb-0" style="font-size:12px;">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-3">Din Excel</th>
+                            <th class="pe-3">In baza de date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for m in loc_mapping %}
+                    <tr>
+                        <td class="ps-3 text-muted">{{ m.excel }}</td>
+                        <td class="pe-3">
+                            {% if m.db %}
+                            <span class="text-success fw-semibold">
+                                <i class="bi bi-check-circle me-1"></i>{{ m.db }}
+                            </span>
+                            {% else %}
+                            <span class="text-danger">
+                                <i class="bi bi-x-circle me-1"></i>Negasita
+                            </span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% set dups = [] %}
+        {% for m in loc_mapping %}
+            {% if m.db and (loc_mapping | selectattr('db', 'equalto', m.db) | list | length) > 1 %}
+                {% if m.db not in dups %}{% set _ = dups.append(m.db) %}{% endif %}
+            {% endif %}
+        {% endfor %}
+        {% if dups %}
+        <div class="alert alert-warning mt-2 py-2 px-3" style="font-size:12px;">
+            <i class="bi bi-exclamation-triangle me-1"></i>
+            <strong>Atentie:</strong> Mai multe coloane Excel au mapat la aceeasi locatie DB.
+            Redenumeste locatiile din <a href="/locatii/">Locatii</a> sa corespunda cu fisierul.
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- PRODUSE NEPOTRIVITE -->
+    {% if unmatched_produse %}
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-danger text-white py-2">
+                <i class="bi bi-x-circle me-1"></i>
+                Produse negasite in baza de date ({{ unmatched_produse | length }})
+            </div>
+            <div class="card-body p-0" style="max-height:400px; overflow-y:auto;">
+                <ul class="list-group list-group-flush">
+                {% for u in unmatched_produse %}
+                <li class="list-group-item py-1 px-3 text-danger small">
+                    <i class="bi bi-question-circle me-1"></i>{{ u }}
+                </li>
+                {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+
+{% elif request.method == 'POST' %}
+<div class="alert alert-warning">
+    <i class="bi bi-exclamation-triangle me-1"></i>
+    Niciun rand nu a putut fi importat. Verifica ca fisierul are formatul corect.
+</div>
+{% endif %}
+
+{% endblock %}
+{% block scripts %}
+<script>
+document.getElementById('fisierInput').addEventListener('change', function() {
+    const label = this.nextElementSibling;
+    if (label && label.tagName !== 'BUTTON') label.textContent = this.files[0]?.name || '';
+});
+</script>
+{% endblock %}

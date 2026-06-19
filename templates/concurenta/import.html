@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Import Excel Concurenta{% endblock %}
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-start">
+    <div>
+        <h4><i class="bi bi-file-earmark-excel me-2 text-success"></i>Import Excel Concurenta</h4>
+        <span class="text-muted">Importa date financiare pentru mai multe firme dintr-un fisier Excel</span>
+    </div>
+    <a href="/concurenta/" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left me-1"></i>Inapoi
+    </a>
+</div>
+
+<div class="row g-3">
+    <div class="col-12 col-md-6">
+        <div class="card">
+            <div class="card-header fw-semibold"><i class="bi bi-upload me-1"></i>Selecteaza Fisier</div>
+            <div class="card-body">
+                <form method="POST" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <input type="file" name="fisier" class="form-control" accept=".xlsx,.xls" required>
+                    </div>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-cloud-upload me-1"></i>Importa
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-md-6">
+        <div class="card">
+            <div class="card-header fw-semibold"><i class="bi bi-info-circle me-1"></i>Format Fisier Excel</div>
+            <div class="card-body">
+                <p class="small text-muted mb-2">Fisierul trebuie sa contina coloanele (ordinea nu conteaza):</p>
+                <table class="table table-sm table-bordered small">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Coloana</th>
+                            <th>Obligatorie</th>
+                            <th>Exemple denumiri</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>Firma</strong></td><td><span class="text-danger">Da</span></td><td>Firma, Companie, Denumire</td></tr>
+                        <tr><td><strong>An</strong></td><td><span class="text-danger">Da</span></td><td>An, Year, Anul</td></tr>
+                        <tr><td><strong>Cifra Afaceri</strong></td><td>Nu</td><td>Cifra Afaceri, CA, Revenue</td></tr>
+                        <tr><td><strong>Profit Net</strong></td><td>Nu</td><td>Profit Net, Profit</td></tr>
+                        <tr><td><strong>Angajati</strong></td><td>Nu</td><td>Numar Angajati, Angajati</td></tr>
+                        <tr><td><strong>Locatii</strong></td><td>Nu</td><td>Numar Locatii, Locatii</td></tr>
+                    </tbody>
+                </table>
+                <div class="alert alert-info small mb-0">
+                    <i class="bi bi-lightbulb me-1"></i>
+                    Firmele noi sunt create automat. Daca exista deja date pentru acelasi An + Firma, vor fi actualizate.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

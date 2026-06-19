@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+{% block title %}Clienti – ALIDEEA{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0"><i class="bi bi-people me-2 text-primary"></i>Clienti</h4>
+    <a href="{{ url_for('financiar.clienti_adauga') }}" class="btn btn-primary">
+        <i class="bi bi-plus-lg me-1"></i>Client Nou
+    </a>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr><th>Nume</th><th>CUI</th><th>Telefon</th><th>Email</th><th></th></tr>
+            </thead>
+            <tbody>
+            {% for c in clienti %}
+            <tr>
+                <td class="fw-semibold">{{ c.nume }}</td>
+                <td>{{ c.cui or '—' }}</td>
+                <td>{{ c.telefon or '—' }}</td>
+                <td>{{ c.email or '—' }}</td>
+                <td class="text-end">
+                    <a href="{{ url_for('financiar.clienti_editeaza', id=c.id) }}" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-pencil"></i>
+                    </a>
+                    <form method="POST" action="{{ url_for('financiar.clienti_sterge', id=c.id) }}" class="d-inline"
+                          onsubmit="return confirm('Stergi clientul {{ c.nume }}?')">
+                        <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                    </form>
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5" class="text-center text-muted py-4">Niciun client adaugat</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

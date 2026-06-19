@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% block title %}Import Stoc — {{ locatie.nume }}{% endblock %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+    <div>
+        <h4 class="mb-0">
+            <i class="bi bi-file-earmark-excel me-2 text-success"></i>
+            Import Stoc din Excel — {{ locatie.nume }}
+        </h4>
+        <span class="text-muted small">
+            Stocul introdus devine Stoc Initial. Stoc Curent se calculeaza automat de aici inainte.
+        </span>
+    </div>
+    <a href="/stoc/?locatie_id={{ locatie.id }}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left me-1"></i>Inapoi la stoc
+    </a>
+</div>
+
+<!-- FORMAT ACCEPTAT -->
+<div class="alert alert-info py-2 px-3 mb-3" style="font-size:12px;">
+    <i class="bi bi-info-circle me-1"></i>
+    <strong>Format Excel acceptat:</strong>
+    Coloana <strong>A</strong> = denumire produs (sau cod articol / EAN) &nbsp;|&nbsp;
+    Coloana <strong>B</strong> = cantitate &nbsp;|&nbsp;
+    Prima linie poate fi header (se ignora automat).
+    Fisiere acceptate: <strong>.xlsx</strong>
+</div>
+
+<!-- UPLOAD FORM -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+        <form method="POST" enctype="multipart/form-data" id="formImport">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-8">
+                    <label class="form-label fw-semibold">
+                        Selecteaza fisier Excel (.xlsx)
+                    </label>
+                    <input type="file" name="fisier" id="fisierInput"
+                           class="form-control" accept=".xlsx,.xls" required>
+                </div>
+                <div class="col-md-4">
+                    <button type="submit" class="btn btn-success w-100">
+                        <i class="bi bi-file-earmark-excel me-1"></i>Importa Stoc
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if matched or unmatched %}
+
+<!-- REZUMAT -->
+<div class="row g-2 mb-3">
+    <div class="col-auto">
+        <div class="card border-success border text-center px-4 py-2">
+            <div class="fw-bold text-success fs-4">{{ matched|length }}</div>
+            <div class="text-muted small">Produse potrivite</div>
+        </div>
+    </div>
+    <div class="col-auto">
+        <div class="card border-danger border text-center px-4 py-2">
+            <div class="fw-bold text-danger fs-4">{{ unmatched|length }}</div>
+            <div class="text-muted small">Nepotrivite</div>
+        </div>
+    </div>
+    {% if importat %}
+    <div class="col-auto d-flex align-items-center">
+        <span class="badge bg-success fs-6 px-3 py-2">
+            <i class="bi bi-check-circle me-1"></i>Importat cu succes
+        </span>
+    </div>
+    {% endif %}
+</div>
+
+<div class="row g-3">
+
+    <!-- PRODUSE POTRIVITE -->
+    {% if matched %}
+    <div class="col-md-7">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-success text-white py-2">
+                <i class="bi bi-check-circle me-1"></i>
+                Produse importate ({{ matched|length }}) — salvate ca Stoc Initial
+            </div>
+            <div class="card-body p-0" style="max-height:500px; overflow-y:auto;">
+                <table class="table table-sm mb-0" style="font-size:12px;">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-3">#</th>
+                            <th>Produs</th>
+                            <th class="text-end pe-3">Cantitate</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for i, m in matched|enumerate %}
+                    <tr>
+                        <td class="ps-3 text-muted">{{ i+1 }}</td>
+                        <td class="fw-semibold">{{ m.produs }}</td>
+                        <td class="text-end pe-3 text-success fw-bold">{{ "%.3f"|format(m.cantitate) }}</td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- PRODUSE NEPOTRIVITE -->
+    {% if unmatched %}
+    <div class="col-md-5">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-danger text-white py-2">
+                <i class="bi bi-x-circle me-1"></i>
+                Nepotrivite ({{ unmatched|length }}) — nu se salveaza
+            </div>
+            <div class="card-body p-0" style="max-height:500px; overflow-y:auto;">
+                <ul class="list-group list-group-flush">
+                {% for u in unmatched %}
+                <li class="list-group-item py-1 px-3 text-danger small">
+                    <i class="bi bi-question-circle me-1"></i>{{ u }}
+                </li>
+                {% endfor %}
+                </ul>
+            </div>
+        </div>
+        <div class="text-muted small mt-2">
+            <i class="bi bi-lightbulb me-1"></i>
+            Produsele nepotrivite nu exista in baza de date sau denumirea difera.
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+
+{% elif request.method == 'POST' %}
+<div class="alert alert-warning">
+    <i class="bi bi-exclamation-triangle me-1"></i>
+    Niciun produs nu a putut fi potrivit. Verifica formatul fisierului Excel.
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('fisierInput').addEventListener('change', function() {
+    const label = this.nextElementSibling;
+    if (label) label.textContent = this.files[0]?.name || 'Selecteaza fisier...';
+});
+</script>
+{% endblock %}

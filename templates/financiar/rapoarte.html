@@ -1,0 +1,116 @@
+{% extends 'base.html' %}
+{% block title %}Rapoarte Financiare – ALIDEEA{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <h4 class="mb-0"><i class="bi bi-bar-chart-line me-2 text-primary"></i>Rapoarte Financiare</h4>
+    <form class="d-flex gap-2 align-items-center">
+        <select name="an" class="form-select form-select-sm" onchange="this.form.submit()" style="width:100px;">
+            {% for row in ani_disponibili %}
+            <option value="{{ row.an }}" {{ 'selected' if row.an == an }}>{{ row.an }}</option>
+            {% endfor %}
+            <option value="{{ an }}" selected>{{ an }}</option>
+        </select>
+    </form>
+</div>
+
+<!-- Sumar an -->
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm text-center">
+            <div class="card-body">
+                <div class="text-success fw-bold fs-5">{{ "%.2f"|format(total_v) }} lei</div>
+                <div class="text-muted small">Total Venituri {{ an }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm text-center">
+            <div class="card-body">
+                <div class="text-danger fw-bold fs-5">{{ "%.2f"|format(total_ch) }} lei</div>
+                <div class="text-muted small">Total Cheltuieli {{ an }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm text-center">
+            <div class="card-body">
+                <div class="fw-bold fs-5 {{ 'text-success' if total_p >= 0 else 'text-danger' }}">{{ "%.2f"|format(total_p) }} lei</div>
+                <div class="text-muted small">Profit Net {{ an }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <!-- Tabel lunar -->
+    <div class="col-md-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white fw-semibold">Situație Lunară {{ an }}</div>
+            <div class="card-body p-0">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr><th>Luna</th><th class="text-end">Venituri</th><th class="text-end">Cheltuieli</th><th class="text-end">Profit</th></tr>
+                    </thead>
+                    <tbody>
+                    {% set luni = ['Ian','Feb','Mar','Apr','Mai','Iun','Iul','Aug','Sep','Oct','Nov','Dec'] %}
+                    {% for r in lunar %}
+                    <tr>
+                        <td>{{ luni[r.luna-1] }}</td>
+                        <td class="text-end text-success">{{ "%.2f"|format(r.venituri) }}</td>
+                        <td class="text-end text-danger">{{ "%.2f"|format(r.cheltuieli) }}</td>
+                        <td class="text-end fw-semibold {{ 'text-success' if r.profit >= 0 else 'text-danger' }}">
+                            {{ "%.2f"|format(r.profit) }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                    <tfoot class="table-light fw-bold">
+                        <tr>
+                            <td>TOTAL</td>
+                            <td class="text-end text-success">{{ "%.2f"|format(total_v) }}</td>
+                            <td class="text-end text-danger">{{ "%.2f"|format(total_ch) }}</td>
+                            <td class="text-end {{ 'text-success' if total_p >= 0 else 'text-danger' }}">{{ "%.2f"|format(total_p) }}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <!-- Top clienti -->
+        <div class="card border-0 shadow-sm mb-3">
+            <div class="card-header bg-white fw-semibold">Top 5 Clienți {{ an }}</div>
+            <div class="card-body p-0">
+                <table class="table table-sm mb-0">
+                    {% for c in top_clienti %}
+                    <tr>
+                        <td class="text-truncate" style="max-width:150px;">{{ c.client_nume or '—' }}</td>
+                        <td class="text-end fw-semibold text-success">{{ "%.2f"|format(c.total) }}</td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="2" class="text-center text-muted py-3">—</td></tr>
+                    {% endfor %}
+                </table>
+            </div>
+        </div>
+
+        <!-- Cheltuieli pe categorii -->
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white fw-semibold">Cheltuieli pe Categorii {{ an }}</div>
+            <div class="card-body p-0">
+                <table class="table table-sm mb-0">
+                    {% for c in top_cheltuieli %}
+                    <tr>
+                        <td><span class="badge bg-secondary">{{ c.categorie }}</span></td>
+                        <td class="text-end fw-semibold text-danger">{{ "%.2f"|format(c.total) }}</td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="2" class="text-center text-muted py-3">—</td></tr>
+                    {% endfor %}
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

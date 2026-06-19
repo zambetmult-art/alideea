@@ -1,84 +1,155 @@
 {% extends "base.html" %}
 {% block title %}Stoc Curent{% endblock %}
 {% block content %}
-<div class="page-header d-flex justify-content-between align-items-start">
+
+<div class="page-header d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
     <div>
-        <h4><i class="bi bi-list-check me-2 text-primary"></i>{{ titlu }}</h4>
-        <span class="text-muted">Stoc calculat in timp real</span>
+        <h4><i class="bi bi-boxes me-2 text-primary"></i>Stoc Curent</h4>
+        <span class="text-muted small">Stocuri înregistrate pe locații și date</span>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="/stoc/import-matrice" class="btn btn-outline-success btn-sm">
+            <i class="bi bi-file-earmark-excel me-1"></i>Import Matrice
+        </a>
+        <a href="/stoc/import-toate" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-upload me-1"></i>Import Toate
+        </a>
     </div>
 </div>
 
-<!-- Selector locatie -->
-<div class="card mb-3">
-    <div class="card-body py-2">
-        <div class="d-flex gap-2 align-items-center flex-wrap">
-            <a href="/stoc/?locatie_id=central"
-               class="btn btn-sm {{ 'btn-primary' if locatie_id == 'central' else 'btn-outline-secondary' }}">
-                <i class="bi bi-house me-1"></i>Stoc Central
-            </a>
-            {% for l in locatii %}
-            <a href="/stoc/?locatie_id={{ l.id }}"
-               class="btn btn-sm {{ 'btn-primary' if locatie_id == l.id|string else 'btn-outline-secondary' }}">
-                <i class="bi bi-geo-alt me-1"></i>{{ l.nume }}
-            </a>
-            {% endfor %}
+<!-- ===== PENDING INVENTAR ===== -->
+{% if pending %}
+<h6 class="text-muted mb-2"><i class="bi bi-hourglass-split me-1 text-warning"></i>Inventare în așteptare ({{ pending|length }})</h6>
+<div class="row g-3 mb-4">
+{% for s in pending %}
+<div class="col-12 col-md-6 col-xl-4">
+    <div class="card border-warning border-2 shadow-sm">
+        <div class="card-body py-3">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <div>
+                    <span class="badge bg-warning text-dark me-1">PENDING</span>
+                    <span class="fw-semibold">{{ s.locatie_nume or '—' }}</span>
+                </div>
+                <small class="text-muted">{{ s.data_submisie[:10] if s.data_submisie else '' }}</small>
+            </div>
+            <div class="text-muted small mb-3">
+                <i class="bi bi-box-seam me-1"></i>{{ s.nr_produse }} produse
+            </div>
+            <div class="d-flex gap-2">
+                <a href="/comenzi/submisie/{{ s.id }}" class="btn btn-sm btn-outline-primary flex-grow-1">
+                    <i class="bi bi-eye me-1"></i>Vezi
+                </a>
+            </div>
         </div>
     </div>
 </div>
+{% endfor %}
+</div>
+{% endif %}
 
-<!-- Filtre -->
+<!-- ===== FILTRE ===== -->
 <div class="card mb-3">
     <div class="card-body py-2">
-        <input type="text" id="searchStoc" class="form-control form-control-sm" placeholder="Cauta produs..." style="max-width:300px">
+        <form method="GET" class="row g-2 align-items-end">
+            <div class="col-6 col-md-4">
+                <label class="form-label small mb-1 text-muted">Locație</label>
+                <select name="locatie_id" class="form-select form-select-sm">
+                    <option value="">Toate locațiile</option>
+                    {% for l in locatii %}
+                    <option value="{{ l.id }}" {{ 'selected' if loc_filter == l.id|string }}>{{ l.nume }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-6 col-md-3">
+                <label class="form-label small mb-1 text-muted">Data</label>
+                <input type="date" name="data" class="form-control form-control-sm"
+                       value="{{ data_filter }}" max="{{ today }}">
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="bi bi-funnel me-1"></i>Filtrează
+                </button>
+            </div>
+            {% if loc_filter or data_filter %}
+            <div class="col-auto">
+                <a href="/stoc/" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-x-circle me-1"></i>Resetează
+                </a>
+            </div>
+            {% endif %}
+        </form>
     </div>
 </div>
 
+<!-- ===== TABEL SNAPSHOTS ===== -->
 <div class="card">
-    <div class="card-body p-0" style="overflow-x: auto;">
-        <table class="table table-hover mb-0" style="min-width: 500px;">
-            <thead><tr>
-                <th class="ps-3">Cod</th><th>Produs</th><th>Categorie</th>
-                <th class="text-center">UM</th><th class="text-end pe-3">Stoc curent</th>
-            </tr></thead>
-            <tbody id="tabelStoc">
-            {% for s in stoc %}
-            <tr class="stoc-row" data-denumire="{{ s.denumire|lower }}">
-                <td class="ps-3 text-muted small">{{ s.cod_articol or '-' }}</td>
-                <td class="fw-semibold">{{ s.denumire }}</td>
-                <td><span class="badge bg-light text-dark">{{ s.categorie_nume or '-' }}</span></td>
-                <td class="text-center"><span class="badge-um">{{ s.unitate_masura }}</span></td>
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span class="fw-semibold">
+            Stocuri înregistrate
+            {% if snapshots %}
+            <span class="badge bg-secondary ms-1">{{ snapshots|length }}</span>
+            {% endif %}
+        </span>
+    </div>
+    <div class="card-body p-0" style="overflow-x:auto;">
+        {% if not snapshots %}
+        <div class="text-center py-5 text-muted">
+            <i class="bi bi-inbox fs-1 d-block mb-2 opacity-25"></i>
+            Niciun stoc înregistrat{% if loc_filter or data_filter %} pentru filtrele selectate{% endif %}.
+            <div class="mt-3">
+                <a href="/stoc/import-matrice" class="btn btn-outline-success btn-sm">
+                    <i class="bi bi-file-earmark-excel me-1"></i>Importă stoc din Excel
+                </a>
+            </div>
+        </div>
+        {% else %}
+        <table class="table table-hover mb-0" style="min-width:600px;">
+            <thead class="table-light">
+                <tr>
+                    <th class="ps-3">Data</th>
+                    <th>Locație</th>
+                    <th class="text-center">Produse</th>
+                    <th class="text-muted small">Importat de</th>
+                    <th class="text-muted small">La ora</th>
+                    <th class="text-end pe-3">Acțiuni</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for s in snapshots %}
+            <tr>
+                <td class="ps-3 fw-semibold font-monospace">{{ s.data }}</td>
+                <td>
+                    <span class="badge bg-light text-dark border">{{ s.locatie_nume }}</span>
+                </td>
+                <td class="text-center">
+                    <span class="badge bg-primary rounded-pill">{{ s.nr_produse }}</span>
+                </td>
+                <td class="text-muted small">{{ s.creat_de_nume or '—' }}</td>
+                <td class="text-muted small">
+                    {{ s.creat_la[:16] if s.creat_la else '—' }}
+                </td>
                 <td class="text-end pe-3">
-                    {% if s.stoc_curent <= 0 %}
-                    <span class="stoc-zero">{{ "%.3f"|format(s.stoc_curent) }}</span>
-                    {% elif s.stoc_minim > 0 and s.stoc_curent <= s.stoc_minim %}
-                    <span class="stoc-low">{{ "%.3f"|format(s.stoc_curent) }}</span>
-                    {% else %}
-                    <span class="stoc-ok">{{ "%.3f"|format(s.stoc_curent) }}</span>
-                    {% endif %}
+                    <div class="d-flex gap-1 justify-content-end">
+                        <a href="/stoc/snapshot/{{ s.locatie_id }}/{{ s.data }}"
+                           class="btn btn-sm btn-outline-primary" title="Vezi detalii">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                        {% if current_user.is_manager() %}
+                        <form method="POST" action="/stoc/snapshot/{{ s.locatie_id }}/{{ s.data }}/sterge"
+                              onsubmit="return confirm('Stergi definitiv stocul din {{ s.data }} pentru {{ s.locatie_nume }}?')">
+                            <button class="btn btn-sm btn-outline-danger" type="submit" title="Șterge">
+                                <i class="bi bi-trash3"></i>
+                            </button>
+                        </form>
+                        {% endif %}
+                    </div>
                 </td>
             </tr>
-            {% else %}
-            <tr><td colspan="5" class="text-center py-4 text-muted">Nu exista date de stoc.</td></tr>
             {% endfor %}
             </tbody>
         </table>
+        {% endif %}
     </div>
 </div>
 
-<!-- Legenda -->
-<div class="mt-2 d-flex gap-3 small text-muted">
-    <span><span class="stoc-ok">●</span> Stoc normal</span>
-    <span><span class="stoc-low">●</span> Sub stoc minim</span>
-    <span><span class="stoc-zero">●</span> Stoc epuizat</span>
-</div>
-{% endblock %}
-{% block scripts %}
-<script>
-document.getElementById('searchStoc').addEventListener('input', function() {
-    const q = this.value.toLowerCase();
-    document.querySelectorAll('.stoc-row').forEach(row => {
-        row.style.display = row.dataset.denumire.includes(q) ? '' : 'none';
-    });
-});
-</script>
 {% endblock %}

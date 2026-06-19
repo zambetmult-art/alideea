@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+{% block title %}Inventar {{ locatie.nume }}{% endblock %}
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-start flex-wrap gap-2">
+    <div>
+        <h4><i class="bi bi-clipboard2-check me-2 text-primary"></i>Inventar — {{ locatie.nume }}</h4>
+        <span class="text-muted small">Calculat automat din stocuri importate, intrari si vanzari</span>
+    </div>
+    <a href="/inventar/raport" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left me-1"></i>Inapoi
+    </a>
+</div>
+
+<!-- Selector perioada -->
+<div class="card mb-3">
+    <div class="card-body py-2">
+        <form method="GET" class="d-flex gap-3 align-items-end flex-wrap">
+            <div>
+                <label class="form-label mb-1 small fw-semibold">Stoc Initial (data anterioara)</label>
+                <select name="data_si" class="form-select form-select-sm" style="min-width:160px;">
+                    <option value="">— Fara stoc initial —</option>
+                    {% for d in dates_stoc %}
+                    <option value="{{ d }}" {{ 'selected' if d == data_si }}>{{ d }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="form-label mb-1 small fw-semibold">Stoc Fizic (data curenta)</label>
+                <select name="data_sf" class="form-select form-select-sm" style="min-width:160px;">
+                    {% for d in dates_stoc %}
+                    <option value="{{ d }}" {{ 'selected' if d == data_sf }}>{{ d }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm">
+                <i class="bi bi-calculator me-1"></i>Calculeaza
+            </button>
+            {% if detalii %}
+            <a href="/inventar/raport/{{ locatie.id }}/export?data_si={{ data_si }}&data_sf={{ data_sf }}"
+               class="btn btn-success btn-sm">
+                <i class="bi bi-file-earmark-excel me-1"></i>Export Excel
+            </a>
+            {% endif %}
+        </form>
+    </div>
+</div>
+
+{% if not data_sf %}
+<div class="alert alert-warning">
+    Selecteaza cel putin data stocului fizic (curent).
+</div>
+{% elif not detalii %}
+<div class="alert alert-info">
+    Nu exista date pentru aceasta locatie si perioada selectata.
+    Verifica daca stocul a fost importat pentru data selectata.
+</div>
+{% else %}
+
+<!-- Sumar -->
+<div class="row g-2 mb-3">
+    <div class="col-6 col-md-2">
+        <div class="card text-center py-2">
+            <div class="fw-bold text-primary">{{ "%.0f"|format(totale.stoc_fizic) }}</div>
+            <div class="text-muted small">Stoc Fizic</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-2">
+        <div class="card text-center py-2">
+            <div class="fw-bold">{{ "%.0f"|format(totale.scriptic) }}</div>
+            <div class="text-muted small">Scriptic</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-2">
+        <div class="card text-center py-2">
+            <div class="fw-bold text-success">+{{ "%.3f"|format(totale.plus) }}</div>
+            <div class="text-muted small">Plus total</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-2">
+        <div class="card text-center py-2">
+            <div class="fw-bold text-danger">{{ "%.3f"|format(totale.minus) }}</div>
+            <div class="text-muted small">Minus total</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-2">
+        <div class="card text-center py-2 {{ 'border-danger' if totale.diferenta < -0.1 else 'border-success' if totale.diferenta > 0.1 else '' }}">
+            <div class="fw-bold {{ 'text-danger' if totale.diferenta < -0.1 else 'text-success' if totale.diferenta > 0.1 else 'text-muted' }}">
+                {{ "%.3f"|format(totale.diferenta) }}
+            </div>
+            <div class="text-muted small">Diferenta neta</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-2">
+        <div class="card text-center py-2">
+            <div class="fw-bold">{{ detalii|length }}</div>
+            <div class="text-muted small">Produse</div>
+        </div>
+    </div>
+</div>
+
+<!-- Filtru -->
+<div class="mb-2">
+    <input type="text" id="searchProdus" class="form-control form-control-sm"
+           placeholder="Cauta produs..." style="max-width:280px">
+</div>
+
+<!-- Tabel detalii -->
+<div class="card">
+    <div class="card-body p-0" style="overflow-x:auto;">
+        <table class="table table-sm table-hover mb-0" style="min-width:850px;">
+            <thead class="table-light">
+                <tr>
+                    <th class="ps-3">Produs</th>
+                    <th class="text-center">UM</th>
+                    <th class="text-end" title="Stocul fizic importat de la data anterioara">
+                        Stoc Initial<br><span class="fw-normal text-muted" style="font-size:10px;">{{ data_si or '—' }}</span>
+                    </th>
+                    <th class="text-end" title="Intrari de marfa in aceasta perioada">
+                        Intrari<br><span class="fw-normal text-muted" style="font-size:10px;">{{ data_si or 'tot' }} → {{ data_sf }}</span>
+                    </th>
+                    <th class="text-end text-muted" title="Vanzari Carrefour in aceasta perioada">
+                        Vanzari<br><span class="fw-normal text-muted" style="font-size:10px;">Carrefour</span>
+                    </th>
+                    <th class="text-end text-primary fw-bold" title="SI + Intrari − Vanzari">
+                        Scriptic
+                    </th>
+                    <th class="text-end text-success fw-bold" title="Stocul fizic importat de la data curenta">
+                        Stoc Fizic<br><span class="fw-normal text-muted" style="font-size:10px;">{{ data_sf }}</span>
+                    </th>
+                    <th class="text-end pe-3 fw-bold">Diferenta</th>
+                </tr>
+            </thead>
+            <tbody id="tabelRaport">
+            {% for d in detalii %}
+            <tr class="produs-row" data-denumire="{{ d.denumire|lower }}">
+                <td class="ps-3 fw-semibold">{{ d.denumire }}</td>
+                <td class="text-center"><span class="badge-um">{{ d.um }}</span></td>
+                <td class="text-end text-muted">{{ "%.3f"|format(d.stoc_initial) }}</td>
+                <td class="text-end">
+                    {{ "%.3f"|format(d.intrari) }}
+                    {% if d.transferuri_in or d.transferuri_out or d.retururi %}
+                    <small class="text-muted d-block">
+                        {% if d.transferuri_in %}+{{ "%.3f"|format(d.transferuri_in) }} transf.{% endif %}
+                        {% if d.transferuri_out %}-{{ "%.3f"|format(d.transferuri_out) }} transf.{% endif %}
+                        {% if d.retururi %}-{{ "%.3f"|format(d.retururi) }} ret.{% endif %}
+                    </small>
+                    {% endif %}
+                </td>
+                <td class="text-end text-muted">{{ "%.3f"|format(d.vanzari) }}</td>
+                <td class="text-end fw-semibold text-primary">{{ "%.3f"|format(d.scriptic) }}</td>
+                <td class="text-end fw-semibold text-success">{{ "%.3f"|format(d.stoc_fizic) }}</td>
+                <td class="text-end pe-3 fw-bold">
+                    {% if d.diferenta > 0.001 %}
+                    <span class="text-warning">+{{ "%.3f"|format(d.diferenta) }}</span>
+                    {% elif d.diferenta < -0.001 %}
+                    <span class="text-danger">{{ "%.3f"|format(d.diferenta) }}</span>
+                    {% else %}
+                    <span class="text-muted">0.000</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+            <tfoot class="table-light fw-bold">
+                <tr>
+                    <td colspan="2" class="ps-3">TOTAL</td>
+                    <td class="text-end">{{ "%.3f"|format(totale.stoc_initial) }}</td>
+                    <td class="text-end">{{ "%.3f"|format(totale.intrari) }}</td>
+                    <td class="text-end">{{ "%.3f"|format(totale.vanzari) }}</td>
+                    <td class="text-end text-primary">{{ "%.3f"|format(totale.scriptic) }}</td>
+                    <td class="text-end text-success">{{ "%.3f"|format(totale.stoc_fizic) }}</td>
+                    <td class="text-end pe-3
+                        {{ 'text-danger' if totale.diferenta < -0.001 else 'text-warning' if totale.diferenta > 0.001 else 'text-muted' }}">
+                        {{ "%.3f"|format(totale.diferenta) }}
+                    </td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('searchProdus') && document.getElementById('searchProdus').addEventListener('input', function() {
+    const q = this.value.toLowerCase();
+    document.querySelectorAll('.produs-row').forEach(r => {
+        r.style.display = r.dataset.denumire.includes(q) ? '' : 'none';
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,162 @@
+<!-- DASHBOARD -->
+<div class="sidebar-section">
+    <a href="/dashboard" class="sidebar-link {% if request.path == '/dashboard' %}active{% endif %}">
+        <i class="bi bi-speedometer2"></i> Dashboard
+    </a>
+</div>
+
+<!-- NOMENCLATOARE -->
+{% if current_user.is_manager() %}
+<div class="sidebar-section">
+    <div class="sidebar-label">NOMENCLATOARE</div>
+    <a href="/produse/" class="sidebar-link {% if '/produse' in request.path %}active{% endif %}">
+        <i class="bi bi-box-seam"></i> Produse
+    </a>
+    <a href="/furnizori/" class="sidebar-link {% if '/furnizori' in request.path %}active{% endif %}">
+        <i class="bi bi-truck"></i> Furnizori
+    </a>
+    <a href="/locatii/" class="sidebar-link {% if '/locatii' in request.path %}active{% endif %}">
+        <i class="bi bi-geo-alt"></i> Locatii
+    </a>
+    {% if current_user.rol == 'admin' %}
+    <a href="/utilizatori/" class="sidebar-link {% if '/utilizatori' in request.path %}active{% endif %}">
+        <i class="bi bi-people"></i> Utilizatori
+    </a>
+    {% endif %}
+</div>
+{% endif %}
+
+<!-- ANGAJATI -->
+<div class="sidebar-section">
+    <div class="sidebar-label">ANGAJATI</div>
+    <a href="/documente/" class="sidebar-link {% if request.path == '/documente/' %}active{% endif %}">
+        <i class="bi bi-person-badge"></i> Documente Angajati
+    </a>
+    <a href="/documente/analize" class="sidebar-link {% if '/documente/analize' in request.path %}active{% endif %}">
+        <i class="bi bi-clipboard2-pulse"></i> Analize Medicale
+    </a>
+    <a href="/documente/curs-igiena" class="sidebar-link {% if '/documente/curs-igiena' in request.path %}active{% endif %}">
+        <i class="bi bi-mortarboard"></i> Curs Igiena
+    </a>
+    {% if current_user.is_manager() %}
+    <a href="/delegatii/" class="sidebar-link {% if '/delegatii' in request.path %}active{% endif %}">
+        <i class="bi bi-file-earmark-text"></i> Delegatii
+    </a>
+    <a href="/salarii/" class="sidebar-link {% if '/salarii' in request.path %}active{% endif %}">
+        <i class="bi bi-cash-coin"></i> Salarii & Costuri
+    </a>
+    {% endif %}
+</div>
+
+<!-- GESTIUNE STOCURI -->
+{% if current_user.is_manager() %}
+<div class="sidebar-section">
+    <div class="sidebar-label">GESTIUNE STOCURI</div>
+    <a href="/intrari/" class="sidebar-link {% if '/intrari' in request.path %}active{% endif %}">
+        <i class="bi bi-arrow-down-circle"></i> Intrari Marfa
+    </a>
+    <a href="/vanzari/" class="sidebar-link {% if '/vanzari' in request.path %}active{% endif %}">
+        <i class="bi bi-file-earmark-excel"></i> Vanzari
+    </a>
+    <a href="/transferuri/" class="sidebar-link {% if '/transferuri' in request.path %}active{% endif %}">
+        <i class="bi bi-arrow-left-right"></i> Transferuri
+    </a>
+    <a href="/retururi/" class="sidebar-link {% if '/retururi' in request.path %}active{% endif %}">
+        <i class="bi bi-arrow-return-left"></i> Retururi
+    </a>
+    <a href="/stoc/" class="sidebar-link {% if '/stoc' in request.path %}active{% endif %}">
+        <i class="bi bi-list-check"></i> Stoc Curent
+    </a>
+    <a href="/inventar/raport" class="sidebar-link {% if '/inventar/raport' in request.path %}active{% endif %}">
+        <i class="bi bi-clipboard2-check"></i> Inventar Automat
+    </a>
+    <a href="/comenzi/" class="sidebar-link {% if '/comenzi' in request.path %}active{% endif %}">
+        <i class="bi bi-cart3"></i> Comenzi
+    </a>
+    <a href="/link-magazin/" class="sidebar-link {% if '/link-magazin' in request.path %}active{% endif %}">
+        <i class="bi bi-link-45deg"></i> Generare Link
+    </a>
+</div>
+{% endif %}
+
+<!-- PIERDERI -->
+<div class="sidebar-section">
+    <div class="sidebar-label">PIERDERI</div>
+    <a href="/pierderi/sampling" class="sidebar-link {% if '/pierderi/sampling' in request.path %}active{% endif %}">
+        <i class="bi bi-droplet-half"></i> Sampling
+    </a>
+    <a href="/pierderi/resturi" class="sidebar-link {% if '/pierderi/resturi' in request.path %}active{% endif %}">
+        <i class="bi bi-dash-circle"></i> Resturi
+    </a>
+</div>
+
+<!-- FINANCIAR -->
+{% if current_user.is_manager() %}
+<div class="sidebar-section">
+    <div class="sidebar-label">FINANCIAR</div>
+    <a href="/financiar/" class="sidebar-link {% if request.path == '/financiar/' %}active{% endif %}">
+        <i class="bi bi-cash-stack"></i> Dashboard Financiar
+    </a>
+    <a href="/financiar/facturi-emise/" class="sidebar-link {% if '/financiar/facturi-emise' in request.path %}active{% endif %}">
+        <i class="bi bi-file-earmark-text"></i> Facturi Emise
+    </a>
+    <a href="/financiar/facturi-primite/" class="sidebar-link {% if '/financiar/facturi-primite' in request.path %}active{% endif %}">
+        <i class="bi bi-file-earmark-arrow-down"></i> Facturi Primite
+    </a>
+    <a href="/financiar/cheltuieli/" class="sidebar-link {% if '/financiar/cheltuieli' in request.path %}active{% endif %}">
+        <i class="bi bi-receipt"></i> Cheltuieli
+    </a>
+    <a href="/financiar/clienti/" class="sidebar-link {% if '/financiar/clienti' in request.path %}active{% endif %}">
+        <i class="bi bi-people"></i> Clienți
+    </a>
+    <a href="/financiar/rapoarte/" class="sidebar-link {% if '/financiar/rapoarte' in request.path %}active{% endif %}">
+        <i class="bi bi-bar-chart-line"></i> Rapoarte
+    </a>
+    {% if current_user.is_admin() %}
+    <a href="/financiar/setari/" class="sidebar-link {% if '/financiar/setari' in request.path %}active{% endif %}">
+        <i class="bi bi-building"></i> Date Firmă
+    </a>
+    {% endif %}
+</div>
+{% endif %}
+
+<!-- ANALIZA CONCURENTA -->
+{% if current_user.is_manager() %}
+<div class="sidebar-section">
+    <div class="sidebar-label">ANALIZA CONCURENTA</div>
+    <a href="/concurenta/" class="sidebar-link {% if '/concurenta' in request.path %}active{% endif %}">
+        <i class="bi bi-binoculars"></i> Firme Concurente
+    </a>
+    <a href="/concurenta/analiza" class="sidebar-link {% if '/concurenta/analiza' in request.path %}active{% endif %}">
+        <i class="bi bi-bar-chart-line"></i> Comparatii
+    </a>
+</div>
+{% endif %}
+
+<!-- ANALIZA -->
+{% if current_user.is_manager() %}
+<div class="sidebar-section">
+    <div class="sidebar-label">ANALIZA & RAPOARTE</div>
+    <a href="/analiza/magazin" class="sidebar-link {% if '/analiza/magazin' in request.path %}active{% endif %}">
+        <i class="bi bi-shop"></i> Per Magazin
+    </a>
+    <a href="/analiza/companie" class="sidebar-link {% if '/analiza/companie' in request.path %}active{% endif %}">
+        <i class="bi bi-building"></i> Per Companie
+    </a>
+    <a href="/analiza/produs" class="sidebar-link {% if '/analiza/produs' in request.path %}active{% endif %}">
+        <i class="bi bi-box-seam"></i> Per Produs
+    </a>
+    <a href="/analiza/comparatii" class="sidebar-link {% if '/analiza/comparatii' in request.path %}active{% endif %}">
+        <i class="bi bi-bar-chart-line"></i> Comparatii
+    </a>
+    <a href="/analiza/profitabilitate" class="sidebar-link {% if '/analiza/profitabilitate' in request.path %}active{% endif %}">
+        <i class="bi bi-graph-up-arrow"></i> Profitabilitate
+    </a>
+</div>
+{% endif %}
+
+<div class="sidebar-section mt-auto">
+    <a href="/logout" class="sidebar-link text-danger">
+        <i class="bi bi-box-arrow-right"></i> Iesire
+    </a>
+</div>

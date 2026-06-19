@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ 'Inventar' if link.tip == 'inventar' else 'Comandă' }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; }
+        body { background: #f5f6fa; font-family: system-ui, sans-serif; }
+
+        .header {
+            background: #1a3a5c;
+            color: white;
+            padding: 14px 20px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .header h6 { margin: 0; font-size: 16px; }
+        .header small { opacity: .75; font-size: 12px; }
+
+        /* Selectie locatie */
+        #sectLocatie { padding: 20px; }
+        .loc-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 8px;
+            margin-top: 10px;
+        }
+        .loc-btn {
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            padding: 10px 8px;
+            background: white;
+            cursor: pointer;
+            text-align: center;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all .12s;
+            color: #333;
+        }
+        .loc-btn:hover { border-color: #0d6efd; background: #f0f7ff; color: #0d6efd; }
+        .loc-btn.activa { border-color: #0d6efd; background: #0d6efd; color: white; }
+        .loc-btn i { display: block; font-size: 20px; margin-bottom: 4px; }
+
+        /* Lista produse */
+        #sectProduse { display: none; }
+        .produse-header {
+            background: white;
+            border-bottom: 1px solid #e0e0e0;
+            padding: 10px 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .produse-header .locatie-badge {
+            background: #0d6efd;
+            color: white;
+            border-radius: 20px;
+            padding: 3px 12px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+        .cauta-produs {
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 5px 10px;
+            font-size: 13px;
+            width: 200px;
+        }
+        .completate-badge {
+            margin-left: auto;
+            background: #198754;
+            color: white;
+            border-radius: 20px;
+            padding: 3px 10px;
+            font-size: 12px;
+            display: none;
+        }
+
+        /* Tabel produse */
+        .produs-list { background: white; }
+        .produs-row {
+            display: flex;
+            align-items: center;
+            padding: 8px 16px;
+            border-bottom: 1px solid #f0f0f0;
+            gap: 12px;
+        }
+        .produs-row:last-child { border-bottom: none; }
+        .produs-row.completat { background: #f0fff4; }
+        .produs-row.completat .produs-name { font-weight: 600; }
+        .produs-name {
+            flex: 1;
+            font-size: 14px;
+            color: #222;
+            line-height: 1.3;
+        }
+        .produs-um {
+            font-size: 11px;
+            color: #888;
+            background: #f0f0f0;
+            border-radius: 4px;
+            padding: 2px 6px;
+            min-width: 32px;
+            text-align: center;
+        }
+        .cant-input {
+            width: 90px;
+            border: 1.5px solid #ddd;
+            border-radius: 6px;
+            padding: 5px 8px;
+            font-size: 15px;
+            text-align: right;
+            background: white;
+            transition: border-color .1s;
+        }
+        .cant-input:focus { outline: none; border-color: #0d6efd; background: #f0f7ff; }
+        .cant-input.has-val { border-color: #198754; background: #f0fff4; }
+
+        /* Footer submit */
+        .footer-submit {
+            display: none;
+            position: sticky;
+            bottom: 0;
+            background: white;
+            border-top: 1px solid #ddd;
+            padding: 12px 16px;
+            z-index: 50;
+        }
+        .btn-trimite {
+            width: 100%;
+            background: #0d6efd;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 13px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .btn-trimite:active { background: #0b5ed7; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <i class="bi bi-{{ 'clipboard2-check' if link.tip == 'inventar' else 'cart3' }}" style="font-size:20px;"></i>
+    <div>
+        <h6>{{ 'Inventar Săptămânal' if link.tip == 'inventar' else 'Comandă' }}</h6>
+        {% if link.descriere %}<small>{{ link.descriere }}</small>{% endif %}
+    </div>
+</div>
+
+<form method="POST" id="formMain">
+    <input type="hidden" name="metoda" value="manual">
+    <input type="hidden" name="locatie_id" id="locatieInput">
+
+    <!-- PASUL 1: Selecteaza locatia -->
+    <div id="sectLocatie">
+        <p class="mb-2 text-muted" style="font-size:14px;">
+            <i class="bi bi-geo-alt me-1"></i>Selecteaza locatia ta:
+        </p>
+        <input type="text" id="cautaLocatie" class="cauta-produs w-100 mb-2"
+               placeholder="Cauta locatie..." autocomplete="off">
+        <div class="loc-grid" id="locGrid">
+            {% for l in locatii %}
+            <div class="loc-btn" data-id="{{ l.id }}" data-nume="{{ l.nume|lower }}"
+                 onclick="selecteazaLocatie({{ l.id }}, '{{ l.nume|replace("'","\\'")|safe }}')">
+                <i class="bi bi-shop"></i>
+                {{ l.nume }}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- PASUL 2: Lista produse -->
+    <div id="sectProduse">
+        <div class="produse-header">
+            <span class="locatie-badge" id="locatieBadge"></span>
+            <input type="text" id="cautaProdus" class="cauta-produs"
+                   placeholder="🔍 Cauta produs..." autocomplete="off">
+            <span class="completate-badge" id="completateBadge">0 completate</span>
+            <button type="button" class="btn btn-link btn-sm text-muted p-0"
+                    onclick="schimbaLocatie()" style="font-size:12px;">
+                <i class="bi bi-arrow-left me-1"></i>Schimba locatia
+            </button>
+        </div>
+
+        <div class="produs-list" id="listaProduse">
+            {% for p in produse %}
+            <div class="produs-row" id="row_{{ p.id }}" data-den="{{ p.denumire|lower }}">
+                <span class="produs-name">{{ p.denumire }}</span>
+                <span class="produs-um">{{ p.unitate_masura }}</span>
+                <input type="number" name="cant_{{ p.id }}"
+                       class="cant-input" min="0" step="0.001"
+                       placeholder="0" autocomplete="off"
+                       data-idx="{{ loop.index0 }}"
+                       oninput="onCantInput(this)"
+                       onkeydown="navEnter(event, {{ loop.index0 }})">
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Footer sticky cu butonul Trimite -->
+    <div class="footer-submit" id="footerSubmit">
+        <button type="submit" class="btn-trimite" id="btnTrimite">
+            <i class="bi bi-send"></i>
+            <span>Trimite</span>
+        </button>
+    </div>
+</form>
+
+<script>
+const inputs = [];
+document.querySelectorAll('.cant-input').forEach(i => inputs.push(i));
+
+function selecteazaLocatie(id, nume) {
+    document.getElementById('locatieInput').value = id;
+    document.getElementById('sectLocatie').style.display = 'none';
+    document.getElementById('sectProduse').style.display = 'block';
+    document.getElementById('footerSubmit').style.display = 'block';
+    document.getElementById('locatieBadge').textContent = nume;
+    document.querySelectorAll('.loc-btn').forEach(b => b.classList.toggle('activa', +b.dataset.id === id));
+    window.scrollTo(0, 0);
+    // Focus primul input
+    const first = inputs.find(i => i.closest('.produs-row').style.display !== 'none');
+    if (first) first.focus();
+}
+
+function schimbaLocatie() {
+    document.getElementById('sectLocatie').style.display = 'block';
+    document.getElementById('sectProduse').style.display = 'none';
+    document.getElementById('footerSubmit').style.display = 'none';
+    document.getElementById('locatieInput').value = '';
+    window.scrollTo(0, 0);
+}
+
+// Cauta locatie
+document.getElementById('cautaLocatie').addEventListener('input', function() {
+    const q = this.value.toLowerCase();
+    document.querySelectorAll('.loc-btn').forEach(b => {
+        b.style.display = b.dataset.nume.includes(q) ? '' : 'none';
+    });
+});
+
+// Cauta produs
+document.getElementById('cautaProdus').addEventListener('input', function() {
+    const q = this.value.toLowerCase();
+    document.querySelectorAll('.produs-row').forEach(r => {
+        r.style.display = r.dataset.den.includes(q) ? '' : 'none';
+    });
+});
+
+// Input cantitate
+let nrCompletate = 0;
+function onCantInput(inp) {
+    const v = parseFloat(inp.value) || 0;
+    const row = inp.closest('.produs-row');
+    const era = inp.classList.contains('has-val');
+    if (v > 0) {
+        inp.classList.add('has-val');
+        row.classList.add('completat');
+        if (!era) nrCompletate++;
+    } else {
+        inp.classList.remove('has-val');
+        row.classList.remove('completat');
+        if (era) nrCompletate--;
+    }
+    const badge = document.getElementById('completateBadge');
+    if (nrCompletate > 0) {
+        badge.style.display = '';
+        badge.textContent = nrCompletate + ' completate';
+    } else {
+        badge.style.display = 'none';
+    }
+}
+
+// Enter → urmatorul input vizibil
+function navEnter(e, idx) {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    const vis = inputs.filter(i => i.closest('.produs-row').style.display !== 'none');
+    const cur = vis.findIndex(i => +i.dataset.idx === idx);
+    if (cur < vis.length - 1) {
+        vis[cur + 1].focus();
+        vis[cur + 1].select();
+    } else {
+        document.getElementById('btnTrimite').focus();
+    }
+}
+
+// Validare submit
+document.getElementById('formMain').addEventListener('submit', function(e) {
+    if (!document.getElementById('locatieInput').value) {
+        e.preventDefault();
+        alert('Selecteaza locatia ta!');
+        return;
+    }
+    if (nrCompletate === 0) {
+        e.preventDefault();
+        alert('Introdu cel putin o cantitate!');
+        return;
+    }
+    document.getElementById('btnTrimite').disabled = true;
+    document.getElementById('btnTrimite').innerHTML = '<i class="bi bi-hourglass-split"></i> Se trimite...';
+});
+</script>
+</body>
+</html>

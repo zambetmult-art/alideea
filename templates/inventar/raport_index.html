@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Inventar Automat{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h4><i class="bi bi-clipboard2-check me-2 text-primary"></i>Inventar Saptamanal — Auto-Calculat</h4>
+    <span class="text-muted">Selecteaza o locatie pentru a vedea inventarul calculat automat</span>
+</div>
+
+<div class="alert alert-info py-2 px-3 mb-3" style="font-size:13px;">
+    <i class="bi bi-info-circle me-1"></i>
+    <strong>Cum functioneaza:</strong>
+    Importi Stocul Curent in fiecare luni la fiecare locatie → sistemul calculeaza automat
+    <strong>Scriptic = Stoc Initial + Intrari − Vanzari</strong> si compara cu Stocul Fizic importat.
+</div>
+
+{% if not locatii %}
+<div class="alert alert-warning">
+    <i class="bi bi-exclamation-triangle me-1"></i>
+    Nu exista stocuri importate. Mergi la <a href="/stoc/import-matrice">Import Stoc Saptamanal</a> pentru a importa stocul curent al locatiilor.
+</div>
+{% else %}
+<div class="card">
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th class="ps-3">Locatie</th>
+                    <th class="text-center">Ultima data stoc</th>
+                    <th class="text-center">Nr. importuri stoc</th>
+                    <th class="text-center">Vanzari disponibile</th>
+                    <th class="text-center">Intrari disponibile</th>
+                    <th class="text-end pe-3">Actiune</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for l in locatii %}
+            <tr>
+                <td class="ps-3 fw-semibold">{{ l.nume }}</td>
+                <td class="text-center">
+                    {% if l.ultima_data_stoc %}
+                    <span class="badge bg-success">{{ l.ultima_data_stoc }}</span>
+                    {% else %}
+                    <span class="text-muted">—</span>
+                    {% endif %}
+                </td>
+                <td class="text-center text-muted">{{ l.nr_importuri }}</td>
+                <td class="text-center text-muted">{{ l.nr_vanzari }}</td>
+                <td class="text-center text-muted">{{ l.nr_intrari }}</td>
+                <td class="text-end pe-3">
+                    <a href="/inventar/raport/{{ l.id }}" class="btn btn-primary btn-sm">
+                        <i class="bi bi-calculator me-1"></i>Vezi Inventar
+                    </a>
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% if dates %}
+<div class="mt-3 text-muted small">
+    <i class="bi bi-calendar3 me-1"></i>
+    Date stoc disponibile: {{ dates | join(', ') }}
+</div>
+{% endif %}
+{% endif %}
+{% endblock %}

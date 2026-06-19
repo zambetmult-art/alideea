@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% block title %}Cheltuială Nouă – ALIDEEA{% endblock %}
+{% block content %}
+<div class="d-flex align-items-center mb-3 gap-2">
+    <a href="{{ url_for('financiar.cheltuieli') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left"></i></a>
+    <h4 class="mb-0"><i class="bi bi-receipt me-2 text-danger"></i>Cheltuială Nouă</h4>
+</div>
+<div class="card border-0 shadow-sm" style="max-width:500px;">
+    <div class="card-body">
+        <form method="POST">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Data</label>
+                    <input type="date" name="data" class="form-control" value="{{ today }}" required>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Categorie</label>
+                    <select name="categorie" class="form-select" required>
+                        {% for cat in categorii %}
+                        <option value="{{ cat }}">{{ cat }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="mt-3">
+                <label class="form-label fw-semibold">Descriere <span class="text-danger">*</span></label>
+                <input type="text" name="descriere" class="form-control" required placeholder="ex: Chirie depozit, Curent electric...">
+            </div>
+            <div class="mt-3">
+                <label class="form-label fw-semibold">Sumă (lei) <span class="text-danger">*</span></label>
+                <input type="number" name="suma" class="form-control" step="0.01" required min="0">
+            </div>
+            <div class="mt-3">
+                <label class="form-label fw-semibold">Observații</label>
+                <textarea name="observatii" class="form-control" rows="2"></textarea>
+            </div>
+            <div class="mt-4 d-flex gap-2">
+                <button type="submit" class="btn btn-danger"><i class="bi bi-check-lg me-1"></i>Salvează</button>
+                <a href="{{ url_for('financiar.cheltuieli') }}" class="btn btn-outline-secondary">Anulează</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

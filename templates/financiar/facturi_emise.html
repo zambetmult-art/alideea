@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+{% block title %}Facturi Emise – ALIDEEA{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <h4 class="mb-0"><i class="bi bi-file-earmark-text me-2 text-primary"></i>Facturi Emise</h4>
+    <a href="{{ url_for('financiar.facturi_emise_adauga') }}" class="btn btn-primary">
+        <i class="bi bi-plus-lg me-1"></i>Factură Nouă
+    </a>
+</div>
+
+<!-- Filtre -->
+<div class="card border-0 shadow-sm mb-3">
+    <div class="card-body py-2">
+        <form class="row g-2 align-items-end">
+            <div class="col-6 col-md-3">
+                <label class="form-label small mb-1">De la</label>
+                <input type="date" name="data_start" class="form-control form-control-sm" value="{{ data_start }}">
+            </div>
+            <div class="col-6 col-md-3">
+                <label class="form-label small mb-1">Până la</label>
+                <input type="date" name="data_end" class="form-control form-control-sm" value="{{ data_end }}">
+            </div>
+            <div class="col-6 col-md-3">
+                <label class="form-label small mb-1">Status</label>
+                <select name="status" class="form-select form-select-sm">
+                    <option value="">Toate</option>
+                    <option value="neplatita" {{ 'selected' if status_f=='neplatita' }}>Neplatite</option>
+                    <option value="platita" {{ 'selected' if status_f=='platita' }}>Platite</option>
+                    <option value="partiala" {{ 'selected' if status_f=='partiala' }}>Partiale</option>
+                </select>
+            </div>
+            <div class="col-6 col-md-3 d-flex gap-2">
+                <button class="btn btn-sm btn-primary flex-grow-1"><i class="bi bi-search me-1"></i>Filtrează</button>
+                <a href="{{ url_for('financiar.facturi_emise') }}" class="btn btn-sm btn-outline-secondary">Reset</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr><th>Nr. Factură</th><th>Data</th><th>Client</th><th>Scadentă</th><th class="text-end">Total</th><th>Status</th><th></th></tr>
+            </thead>
+            <tbody>
+            {% for f in lista %}
+            <tr>
+                <td><a href="{{ url_for('financiar.factura_emisa_detalii', id=f.id) }}" class="fw-semibold">{{ f.nr_factura }}</a></td>
+                <td>{{ f.data }}</td>
+                <td class="text-truncate" style="max-width:150px;">{{ f.client_nume or '—' }}</td>
+                <td>{{ f.data_scadenta or '—' }}</td>
+                <td class="text-end fw-semibold">{{ "%.2f"|format(f.total_cu_tva) }} lei</td>
+                <td>
+                    {% if f.status == 'platita' %}<span class="badge bg-success">Platita</span>
+                    {% elif f.status == 'partiala' %}<span class="badge bg-warning text-dark">Partiala</span>
+                    {% else %}<span class="badge bg-danger">Neplatita</span>{% endif %}
+                </td>
+                <td class="text-end">
+                    <form method="POST" action="{{ url_for('financiar.factura_emisa_sterge', id=f.id) }}" class="d-inline"
+                          onsubmit="return confirm('Stergi factura {{ f.nr_factura }}?')">
+                        <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                    </form>
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="7" class="text-center text-muted py-4">Nicio factură găsită</td></tr>
+            {% endfor %}
+            </tbody>
+            {% if lista %}
+            <tfoot class="table-light">
+                <tr><td colspan="4" class="fw-bold">TOTAL ({{ lista|length }} facturi)</td>
+                    <td class="text-end fw-bold">{{ "%.2f"|format(total_val) }} lei</td>
+                    <td colspan="2"></td></tr>
+            </tfoot>
+            {% endif %}
+        </table>
+    </div>
+</div>
+{% endblock %}

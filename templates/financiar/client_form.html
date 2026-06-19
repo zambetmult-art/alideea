@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'Editeaza' if client else 'Client Nou' }} – ALIDEEA{% endblock %}
+{% block content %}
+<div class="d-flex align-items-center mb-3 gap-2">
+    <a href="{{ url_for('financiar.clienti') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left"></i></a>
+    <h4 class="mb-0">{{ 'Editeaza Client' if client else 'Client Nou' }}</h4>
+</div>
+<div class="card border-0 shadow-sm" style="max-width:600px;">
+    <div class="card-body">
+        <form method="POST">
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Nume firmă <span class="text-danger">*</span></label>
+                <input type="text" name="nume" class="form-control" value="{{ client.nume if client else '' }}" required>
+            </div>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">CUI</label>
+                    <input type="text" name="cui" class="form-control" value="{{ client.cui if client else '' }}">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Reg. Com.</label>
+                    <input type="text" name="reg_com" class="form-control" value="{{ client.reg_com if client else '' }}">
+                </div>
+            </div>
+            <div class="mb-3 mt-3">
+                <label class="form-label fw-semibold">Adresă</label>
+                <input type="text" name="adresa" class="form-control" value="{{ client.adresa if client else '' }}">
+            </div>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Telefon</label>
+                    <input type="text" name="telefon" class="form-control" value="{{ client.telefon if client else '' }}">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Email</label>
+                    <input type="email" name="email" class="form-control" value="{{ client.email if client else '' }}">
+                </div>
+            </div>
+            <div class="row g-3 mt-1">
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Bancă</label>
+                    <input type="text" name="banca" class="form-control" value="{{ client.banca if client else '' }}">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">IBAN</label>
+                    <input type="text" name="iban" class="form-control" value="{{ client.iban if client else '' }}">
+                </div>
+            </div>
+            <div class="mt-4 d-flex gap-2">
+                <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Salveaza</button>
+                <a href="{{ url_for('financiar.clienti') }}" class="btn btn-outline-secondary">Anuleaza</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

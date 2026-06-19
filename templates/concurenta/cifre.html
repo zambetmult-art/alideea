@@ -1,0 +1,299 @@
+{% extends "base.html" %}
+{% block title %}Cifre - {{ firma.nume }}{% endblock %}
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-start flex-wrap gap-2">
+    <div>
+        <h4><i class="bi bi-table me-2 text-primary"></i>{{ firma.nume }}</h4>
+        <span class="text-muted small">
+            {% if firma.cui %}<span class="badge bg-light text-dark border me-1">CUI: {{ firma.cui }}</span>{% endif %}
+            Date financiare pe ani
+        </span>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        {% if firma.cui %}
+        <button class="btn btn-success btn-sm" onclick="sincronizeazaListafirme()" id="btnSync">
+            <i class="bi bi-cloud-download me-1"></i>Sincronizare listafirme.ro
+        </button>
+        {% endif %}
+        <a href="/concurenta/" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i>Inapoi
+        </a>
+    </div>
+</div>
+
+{% if firma.listafirme_url %}
+<div class="alert alert-light border py-2 mb-3 small">
+    <i class="bi bi-link-45deg me-1 text-success"></i>
+    URL listafirme.ro salvat:
+    <a href="{{ firma.listafirme_url }}" target="_blank" class="text-truncate">{{ firma.listafirme_url }}</a>
+</div>
+{% endif %}
+
+<div class="row g-3">
+    <!-- Formular adaugare manuala -->
+    <div class="col-12 col-lg-4">
+        <div class="card">
+            <div class="card-header fw-semibold"><i class="bi bi-plus-circle me-1"></i>Adauga / Actualizeaza Manual</div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">An *</label>
+                        <input type="number" name="an" class="form-control" value="{{ an_curent }}"
+                               min="2000" max="2100" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Cifra de Afaceri (Lei)</label>
+                        <input type="text" name="cifra_afaceri" class="form-control" placeholder="0">
+                        <div class="form-text">Fara puncte/virgule de mii, doar cifre</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Profit Net (Lei)</label>
+                        <input type="text" name="profit_net" class="form-control" placeholder="0">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Numar Angajati</label>
+                        <input type="number" name="numar_angajati" class="form-control" placeholder="0" min="0">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Numar Locatii</label>
+                        <input type="number" name="numar_locatii" class="form-control" placeholder="0" min="0">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Sursa date</label>
+                        <input type="text" name="sursa" class="form-control"
+                               placeholder="ex: ANAF, Raport anual, listafirme.ro">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Observatii</label>
+                        <textarea name="observatii" class="form-control" rows="2"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-check-lg me-1"></i>Salveaza
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabel date existente -->
+    <div class="col-12 col-lg-8">
+        <div class="card">
+            <div class="card-header fw-semibold"><i class="bi bi-calendar3 me-1"></i>Date Inregistrate</div>
+            <div class="card-body p-0">
+                {% if cifre %}
+                <div style="overflow-x:auto;">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th class="ps-3">An</th>
+                                <th class="text-end">Cifra Afaceri</th>
+                                <th class="text-end">Profit Net</th>
+                                <th class="text-center">Angajati</th>
+                                <th class="text-center">Locatii</th>
+                                <th class="text-center">Sursa</th>
+                                <th class="text-center pe-3">Act.</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        {% for c in cifre %}
+                        <tr>
+                            <td class="ps-3 fw-bold">{{ c.an }}</td>
+                            <td class="text-end">
+                                {% if c.cifra_afaceri %}
+                                {{ "{:,.0f}".format(c.cifra_afaceri) }} Lei
+                                {% else %}-{% endif %}
+                            </td>
+                            <td class="text-end">
+                                {% if c.profit_net %}
+                                <span class="{{ 'text-success' if c.profit_net > 0 else 'text-danger' }}">
+                                    {{ "{:,.0f}".format(c.profit_net) }} Lei
+                                </span>
+                                {% else %}-{% endif %}
+                            </td>
+                            <td class="text-center">{{ c.numar_angajati or '-' }}</td>
+                            <td class="text-center">{{ c.numar_locatii or '-' }}</td>
+                            <td class="text-center">
+                                <span class="badge bg-light text-dark small">{{ c.sursa or '-' }}</span>
+                            </td>
+                            <td class="text-center pe-3">
+                                <form method="POST" action="/concurenta/{{ firma.id }}/cifre/sterge/{{ c.id }}"
+                                      class="d-inline" onsubmit="return confirm('Stergi datele pentru {{ c.an }}?')">
+                                    <button class="btn btn-sm btn-outline-danger">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4 text-muted">
+                    <i class="bi bi-table fs-3 d-block mb-2"></i>
+                    Nu exista date. Adauga manual sau foloseste butonul <strong>Sincronizare listafirme.ro</strong>.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Preview Listafirme -->
+<div class="modal fade" id="modalListafirme" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-cloud-download me-2 text-success"></i>Date de pe listafirme.ro
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="modalLFBody">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-success" role="status"></div>
+                    <p class="mt-2 text-muted">Se cauta date pe listafirme.ro...</p>
+                </div>
+            </div>
+            <div class="modal-footer" id="modalLFFooter" style="display:none;">
+                <small class="text-muted me-auto" id="lfUrl"></small>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Anuleaza</button>
+                <button type="button" class="btn btn-success" id="btnImportLF" onclick="importListafirme()">
+                    <i class="bi bi-check-circle me-1"></i>Importa date selectate
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+let lfPreviewData = null;
+let lfPreviewUrl  = null;
+
+function sincronizeazaListafirme() {
+    const modal = new bootstrap.Modal(document.getElementById('modalListafirme'));
+    document.getElementById('modalLFBody').innerHTML = `
+        <div class="text-center py-4">
+            <div class="spinner-border text-success" role="status"></div>
+            <p class="mt-2 text-muted">Se cauta date pe listafirme.ro...</p>
+        </div>`;
+    document.getElementById('modalLFFooter').style.display = 'none';
+    modal.show();
+
+    fetch('/concurenta/{{ firma.id }}/listafirme-preview')
+        .then(r => r.json())
+        .then(data => {
+            if (!data.ok) {
+                document.getElementById('modalLFBody').innerHTML = `
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle me-2"></i>${data.msg}
+                    </div>
+                    <p class="text-muted small">
+                        Poti adauga datele manual din formularul din stanga,
+                        sau verifica ca firma are CUI-ul corect completat.
+                    </p>`;
+                return;
+            }
+
+            lfPreviewData = data.date;
+            lfPreviewUrl  = data.url;
+
+            // Build preview table
+            const luni = ['','Ian','Feb','Mar','Apr','Mai','Iun','Iul','Aug','Sep','Oct','Nov','Dec'];
+            let rows = data.date.map((r, i) => `
+                <tr>
+                    <td><input type="checkbox" class="form-check-input lf-check" data-idx="${i}" checked></td>
+                    <td class="fw-bold">${r.an}</td>
+                    <td class="text-end">${r.cifra_afaceri.toLocaleString('ro-RO')} Lei</td>
+                    <td class="text-end ${r.profit_net >= 0 ? 'text-success' : 'text-danger'}">${r.profit_net.toLocaleString('ro-RO')} Lei</td>
+                    <td class="text-center">${r.numar_angajati || '-'}</td>
+                </tr>`).join('');
+
+            document.getElementById('modalLFBody').innerHTML = `
+                <div class="alert alert-success py-2 mb-3 small">
+                    <i class="bi bi-check-circle me-1"></i>
+                    Gasit <strong>${data.date.length} ani</strong> de date financiare.
+                    <br><small class="text-muted">${data.titlu}</small>
+                </div>
+                <div class="table-responsive">
+                <table class="table table-sm table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th><input type="checkbox" class="form-check-input" id="checkAll"
+                                       onchange="document.querySelectorAll('.lf-check').forEach(c=>c.checked=this.checked)" checked></th>
+                            <th>An</th>
+                            <th class="text-end">Cifra Afaceri</th>
+                            <th class="text-end">Profit Net</th>
+                            <th class="text-center">Angajati</th>
+                        </tr>
+                    </thead>
+                    <tbody>${rows}</tbody>
+                </table>
+                </div>
+                <p class="text-muted small mt-2 mb-0">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Deselecteaza anii pe care nu vrei sa ii importi. Datele existente pentru acelasi an vor fi suprascrise.
+                </p>`;
+
+            document.getElementById('lfUrl').innerHTML =
+                `<a href="${data.url}" target="_blank" class="text-muted">
+                    <i class="bi bi-box-arrow-up-right me-1"></i>Sursa: ${data.url}</a>`;
+            document.getElementById('modalLFFooter').style.display = '';
+        })
+        .catch(e => {
+            document.getElementById('modalLFBody').innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="bi bi-x-circle me-2"></i>Eroare de retea: ${e.message}
+                </div>`;
+        });
+}
+
+function importListafirme() {
+    const checked = [...document.querySelectorAll('.lf-check:checked')]
+        .map(c => parseInt(c.dataset.idx));
+    if (checked.length === 0) {
+        alert('Selecteaza cel putin un an pentru import.');
+        return;
+    }
+    const dateSelectate = checked.map(i => lfPreviewData[i]);
+
+    document.getElementById('btnImportLF').disabled = true;
+    document.getElementById('btnImportLF').innerHTML =
+        '<span class="spinner-border spinner-border-sm me-1"></span>Se salveaza...';
+
+    fetch('/concurenta/{{ firma.id }}/listafirme-import', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ url: lfPreviewUrl, date: dateSelectate })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.ok) {
+            bootstrap.Modal.getInstance(document.getElementById('modalListafirme')).hide();
+            // Show success and reload
+            const toast = document.createElement('div');
+            toast.className = 'position-fixed bottom-0 end-0 p-3';
+            toast.style.zIndex = 9999;
+            toast.innerHTML = `<div class="toast show align-items-center text-bg-success border-0">
+                <div class="d-flex"><div class="toast-body">
+                    <i class="bi bi-check-circle me-1"></i>
+                    ${data.salvate} ani importati cu succes din listafirme.ro!
+                </div></div></div>`;
+            document.body.appendChild(toast);
+            setTimeout(() => { window.location.reload(); }, 1500);
+        } else {
+            alert('Eroare: ' + data.msg);
+            document.getElementById('btnImportLF').disabled = false;
+            document.getElementById('btnImportLF').innerHTML =
+                '<i class="bi bi-check-circle me-1"></i>Importa date selectate';
+        }
+    })
+    .catch(e => {
+        alert('Eroare de retea: ' + e.message);
+        document.getElementById('btnImportLF').disabled = false;
+    });
+}
+</script>
+{% endblock %}

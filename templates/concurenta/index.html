@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}Analiza Concurenta{% endblock %}
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-start flex-wrap gap-2">
+    <div>
+        <h4><i class="bi bi-binoculars me-2 text-primary"></i>Analiza Concurenta</h4>
+        <span class="text-muted">Firme monitorizate: {{ firme|length }}</span>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="/concurenta/analiza" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-bar-chart-line me-1"></i>Comparatii
+        </a>
+        <a href="/concurenta/import" class="btn btn-outline-success btn-sm">
+            <i class="bi bi-file-earmark-excel me-1"></i>Import Excel
+        </a>
+        <a href="/concurenta/adauga" class="btn btn-primary btn-sm">
+            <i class="bi bi-plus-lg me-1"></i>Firma Noua
+        </a>
+    </div>
+</div>
+
+{% if firme %}
+<div class="row g-3">
+    {% for f in firme %}
+    <div class="col-12 col-md-6 col-xl-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <h6 class="fw-bold mb-0">{{ f.nume }}</h6>
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="dropdown">
+                            <i class="bi bi-three-dots"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="/concurenta/editeaza/{{ f.id }}">
+                                <i class="bi bi-pencil me-2"></i>Editeaza
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <form method="POST" action="/concurenta/sterge/{{ f.id }}"
+                                      onsubmit="return confirm('Stergi firma {{ f.nume }}?')">
+                                    <button class="dropdown-item text-danger">
+                                        <i class="bi bi-trash me-2"></i>Sterge
+                                    </button>
+                                </form>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                {% if f.cui %}
+                <div class="text-muted small mb-1"><i class="bi bi-hash me-1"></i>CUI: {{ f.cui }}</div>
+                {% endif %}
+                {% if f.website %}
+                <div class="small mb-1">
+                    <i class="bi bi-globe me-1"></i>
+                    <a href="{{ f.website }}" target="_blank" class="text-decoration-none">{{ f.website }}</a>
+                </div>
+                {% endif %}
+                {% if f.descriere %}
+                <div class="text-muted small mb-2">{{ f.descriere }}</div>
+                {% endif %}
+                <div class="d-flex gap-2 mt-2">
+                    <span class="badge bg-light text-dark">
+                        <i class="bi bi-calendar3 me-1"></i>{{ f.ani_date or 0 }} ani date
+                    </span>
+                    {% if f.ultimul_an %}
+                    <span class="badge bg-light text-dark">Ultimul: {{ f.ultimul_an }}</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="card-footer bg-transparent d-flex gap-2">
+                <a href="/concurenta/{{ f.id }}/cifre" class="btn btn-primary btn-sm flex-grow-1">
+                    <i class="bi bi-table me-1"></i>Cifre & Date
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="card">
+    <div class="card-body text-center py-5 text-muted">
+        <i class="bi bi-binoculars fs-1 mb-3 d-block"></i>
+        <p>Nu exista firme adaugate inca.</p>
+        <a href="/concurenta/adauga" class="btn btn-primary">
+            <i class="bi bi-plus-lg me-1"></i>Adauga prima firma
+        </a>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+{% block title %}Link Magazin{% endblock %}
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-start">
+    <div>
+        <h4><i class="bi bi-link-45deg me-2 text-primary"></i>Generare Link</h4>
+        <span class="text-muted">Generează link-uri pentru magazine — inventar săptămânal sau comenzi</span>
+    </div>
+    {% if pending_total > 0 %}
+    <a href="/link-magazin/submisii" class="btn btn-warning">
+        <i class="bi bi-clock-history me-1"></i>{{ pending_total }} de validat
+    </a>
+    {% else %}
+    <a href="/link-magazin/submisii" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-inbox me-1"></i>Vezi submisii
+    </a>
+    {% endif %}
+</div>
+
+<div class="alert alert-info py-2 mb-3" style="font-size:13px;">
+    <i class="bi bi-info-circle me-1"></i>
+    Generezi un link → il trimiti la magazine (WhatsApp, email etc.) →
+    angajatul selecteaza locatia lui, completeaza cantitati si apasa <strong>Trimite</strong> →
+    submisia apare la tine pentru validare → dupa aprobare intra in baza de date.
+</div>
+
+<!-- Generare link nou -->
+<div class="card mb-4">
+    <div class="card-header fw-semibold"><i class="bi bi-plus-circle me-1"></i>Genereaza link nou</div>
+    <div class="card-body">
+        <form method="POST" action="/link-magazin/genereaza" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">Tip <span class="text-danger">*</span></label>
+                <select name="tip" class="form-select" required>
+                    <option value="inventar">📋 Inventar (stoc curent)</option>
+                    <option value="comanda">🛒 Comandă</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Descriere <span class="text-muted small">(optional)</span></label>
+                <input type="text" name="descriere" class="form-control"
+                       placeholder="ex: Inventar săptămâna 25, Comandă iulie...">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Valabil până la <span class="text-muted small">(optional)</span></label>
+                <input type="date" name="valid_pana_la" class="form-control">
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-plus-circle me-1"></i>Genereaza
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Lista link-uri -->
+<div class="card">
+    <div class="card-header fw-semibold">Link-uri generate</div>
+    <div class="card-body p-0" style="overflow-x:auto;">
+        {% if not linkuri %}
+        <div class="text-center py-5 text-muted">
+            <i class="bi bi-link-45deg fs-1 d-block mb-2 opacity-25"></i>
+            Nu exista link-uri generate inca.
+        </div>
+        {% else %}
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th class="ps-3">Tip</th>
+                    <th>Descriere</th>
+                    <th>Creat la</th>
+                    <th>Valabil până la</th>
+                    <th class="text-center">Submisii</th>
+                    <th class="text-center">Status</th>
+                    <th class="pe-3">Link (copiaza si trimite)</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for l in linkuri %}
+            <tr class="{{ 'text-muted' if not l.activ }}">
+                <td class="ps-3">
+                    {% if l.tip == 'inventar' %}
+                    <span class="badge bg-info text-dark">📋 Inventar</span>
+                    {% else %}
+                    <span class="badge bg-warning text-dark">🛒 Comandă</span>
+                    {% endif %}
+                </td>
+                <td>{{ l.descriere or '—' }}</td>
+                <td class="small text-muted">{{ l.creat_la[:16] if l.creat_la }}</td>
+                <td class="small">
+                    {% if l.valid_pana_la %}
+                    <span class="{{ 'text-danger' if l.valid_pana_la < today else '' }}">
+                        {{ l.valid_pana_la }}
+                    </span>
+                    {% else %}—{% endif %}
+                </td>
+                <td class="text-center">
+                    {% if l.nr_pending > 0 %}
+                    <a href="/link-magazin/submisii?status=pending" class="badge bg-warning text-dark text-decoration-none">
+                        {{ l.nr_pending }} noi
+                    </a>
+                    {% endif %}
+                    {% if l.nr_total > 0 %}
+                    <span class="text-muted small ms-1">/ {{ l.nr_total }}</span>
+                    {% else %}
+                    <span class="text-muted small">0</span>
+                    {% endif %}
+                </td>
+                <td class="text-center">
+                    {% if l.activ %}
+                    <span class="badge bg-success">Activ</span>
+                    {% else %}
+                    <span class="badge bg-secondary">Inactiv</span>
+                    {% endif %}
+                </td>
+                <td class="pe-3">
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <div class="input-group input-group-sm" style="max-width:340px;">
+                            <input type="text" class="form-control form-control-sm font-monospace"
+                                   value="{{ request.host_url }}s/{{ l.token }}"
+                                   readonly id="lnk_{{ l.id }}">
+                            <button class="btn btn-outline-secondary" type="button"
+                                    onclick="copyLink('lnk_{{ l.id }}', this)"
+                                    title="Copiaza link">
+                                <i class="bi bi-clipboard"></i>
+                            </button>
+                            {% if l.activ %}
+                            <form method="POST" action="/link-magazin/dezactiveaza/{{ l.id }}" style="display:contents;">
+                                <button class="btn btn-outline-warning" type="submit"
+                                        onclick="return confirm('Dezactiveaza acest link?')"
+                                        title="Dezactiveaza">
+                                    <i class="bi bi-pause-circle"></i>
+                                </button>
+                            </form>
+                            {% else %}
+                            <form method="POST" action="/link-magazin/reactiveaza/{{ l.id }}" style="display:contents;">
+                                <button class="btn btn-outline-success" type="submit" title="Reactiveaza">
+                                    <i class="bi bi-check-circle"></i>
+                                </button>
+                            </form>
+                            {% endif %}
+                        </div>
+                        <form method="POST" action="/link-magazin/sterge/{{ l.id }}"
+                              onsubmit="return confirm('Stergi definitiv acest link{% if l.nr_total > 0 %} si cele {{ l.nr_total }} submisii ale lui{% endif %}? Actiunea nu poate fi anulata.');">
+                            <button class="btn btn-danger btn-sm" type="submit" title="Sterge definitiv">
+                                <i class="bi bi-trash3"></i>
+                            </button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const today = '{{ today }}';
+function copyLink(id, btn) {
+    navigator.clipboard.writeText(document.getElementById(id).value);
+    const orig = btn.innerHTML;
+    btn.innerHTML = '<i class="bi bi-check text-success"></i>';
+    setTimeout(() => btn.innerHTML = orig, 2000);
+}
+</script>
+{% endblock %}
