@@ -46,7 +46,7 @@ from routes.documente import documente_bp
 from routes.delegatii import delegatii_bp
 from routes.salarii import salarii_bp
 from routes.link_magazin import link_magazin_bp
-from routes.public_link import public_link_bp
+from routes.public_link import public_bp
 from routes.comenzi import comenzi_bp
 from routes.concurenta import concurenta_bp
 from routes.financiar import financiar_bp
@@ -72,7 +72,7 @@ app.register_blueprint(documente_bp)
 app.register_blueprint(delegatii_bp)
 app.register_blueprint(salarii_bp)
 app.register_blueprint(link_magazin_bp)
-app.register_blueprint(public_link_bp)
+app.register_blueprint(public_bp)
 app.register_blueprint(comenzi_bp)
 app.register_blueprint(concurenta_bp)
 app.register_blueprint(financiar_bp)
