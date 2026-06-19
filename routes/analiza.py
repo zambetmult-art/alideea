@@ -266,7 +266,7 @@ def profitabilitate():
             SELECT COALESCE(SUM(id2.cantitate * COALESCE(id2.pret_unitar,0)),0) as val
             FROM intrari i
             JOIN intrari_detalii id2 ON id2.intrare_id=i.id
-            WHERE i.locatie_destinatie_id=? {wi}
+            WHERE i.locatie_id=? {wi}
         """, [lid]+pi).fetchone()['val'] or 0
 
         # Salarii: filtru DOAR an+locatie, nu luna — calculam media lunara si inmultim cu nr_luni
