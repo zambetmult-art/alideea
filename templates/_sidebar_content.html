@@ -155,6 +155,15 @@
 </div>
 {% endif %}
 
+{% if current_user.is_admin() %}
+<div class="sidebar-section">
+    <div class="sidebar-label">SISTEM</div>
+    <a href="/server/" class="sidebar-link {% if '/server' in request.path %}active{% endif %}">
+        <i class="bi bi-gear-wide-connected"></i> Control Server
+    </a>
+</div>
+{% endif %}
+
 <div class="sidebar-section mt-auto">
     <a href="/logout" class="sidebar-link text-danger">
         <i class="bi bi-box-arrow-right"></i> Iesire
